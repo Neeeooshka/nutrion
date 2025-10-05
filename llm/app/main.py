@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Request
-import openai
 import os
 import traceback
+from openai import OpenAI
 
 app = FastAPI()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Создаем клиент OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.get("/")
 def root():
@@ -17,11 +18,15 @@ async def ask(request: Request):
     prompt = data.get("prompt", "Привет!")
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
         )
-        return {"answer": response.choices[0].message.content}
+        # В новой версии доступ к ответу через response.choices[0].message.content
+        answer = response.choices[0].message.content
+        return {"answer": answer}
 
     except Exception as e:
         # Подробный вывод ошибки

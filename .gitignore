@@ -1,0 +1,21 @@
+#other files
+*.zip
+*.tar
+*.enc
+*.gz
+*.tgz
+*.sql
+*.rar
+*.log
+*.map
+*_test.php
+
+#directories and symlinks
+/.osp/
+/.idea/
+
+#composer
+vendor
+
+#npm
+node_modules

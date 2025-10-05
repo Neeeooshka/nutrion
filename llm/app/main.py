@@ -6,7 +6,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "fitmind-llm"}
+    return {"status": "ok", "service": "nutrion-llm"}
 
 @app.post("/ask")
 async def ask(request: Request):

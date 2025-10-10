@@ -1,4 +1,7 @@
-version: "3.8"
+networks:
+  nutrion_net:
+    driver: bridge
+
 services:
   llm:
     build: ./app
@@ -7,6 +10,9 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    networks:
+      - nutrion_net
+
   nginx:
     image: nginx:latest
     container_name: nutrion_nginx
@@ -16,3 +22,5 @@ services:
       - "80:80"
       - "443:443"
     restart: always
+    networks:
+      - nutrion_net

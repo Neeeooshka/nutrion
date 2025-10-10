@@ -1,16 +1,29 @@
 version: "3.8"
+
 services:
   bot:
     build: ./app
     env_file: ./app/.env
     restart: always
+    # Приложение слушает внутри контейнера порт 8000
     ports:
-      - "8000:8000"
+      - "8069:8000"  # внешний 8069 -> внутренний 8000
+    networks:
+      - nutrion_net
+
   nginx:
     image: nginx:latest
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     ports:
-      - "80:80"
-      - "443:443"
+      - "8469:80"    # внешний 8469 -> внутренний 80
+      - "8643:443"   # внешний 8643 -> внутренний 443
     restart: always
+    depends_on:
+      - bot
+    networks:
+      - nutrion_net
+
+networks:
+  nutrion_net:
+    driver: bridge

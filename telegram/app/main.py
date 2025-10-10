@@ -33,10 +33,10 @@ async def telegram_webhook(request: Request):
     await dp.feed_update(bot, update)
     return {"ok": True}
 
-#@app.on_event("startup")
-#async def on_startup():
-#    """Устанавливаем webhook при запуске"""
-#    webhook_info = await bot.get_webhook_info()
-#    if webhook_info.url != WEBHOOK_URL:
-#        await bot.set_webhook(WEBHOOK_URL)
-#        print(f"Webhook установлен: {WEBHOOK_URL}")
+@app.on_event("startup")
+async def on_startup():
+    """Устанавливаем webhook при запуске"""
+    webhook_info = await bot.get_webhook_info()
+    if webhook_info.url != WEBHOOK_URL:
+        await bot.set_webhook(WEBHOOK_URL)
+        print(f"Webhook установлен: {WEBHOOK_URL}")

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 import os
 import traceback
 from openai import OpenAI
+from config import SYSTEM_PROMPT, MODEL, DEFAULT_PROMPT
 
 app = FastAPI()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -19,12 +20,17 @@ async def ask(request: Request):
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     data = await request.json()
-    prompt = data.get("prompt", "Привет!")
+    prompt = data.get("prompt", DEFAULT_PROMT)
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,          # креативность
+            max_output_tokens=400,    # длина ответа
         )
         answer = response.choices[0].message.content
         return {"answer": answer}

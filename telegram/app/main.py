@@ -1,4 +1,6 @@
 import os
+import sys
+import logging
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import Update
@@ -14,6 +16,18 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 TG_SECRET_TOKEN = os.getenv("TG_SECRET_TOKEN")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
+
+# --- Инициализация логгера ---
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+
 # --- Инициализация бота и диспетчера ---
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
@@ -26,7 +40,7 @@ message_router = Router()
 # --- Хэндлер команды /history ---
 @command_router.message(Command("history"))
 async def handle_history(msg: types.Message):
-    print(f"Команда /history получена: {msg.text}")
+    logger.info(f"Команда /history получена: {msg.text}")
     chat_id = msg.chat.id
     user_id = msg.from_user.id
 
@@ -61,7 +75,7 @@ async def handle_message(msg: types.Message):
         await msg.answer(answer)
     except Exception as e:
         await msg.answer("Произошла ошибка при обработке запроса 😕")
-        print("Error:", e)
+        logger.exception(e)
 
 # --- Подключаем роутеры к Dispatcher ---
 dp.include_router(command_router)
@@ -74,7 +88,7 @@ async def startup():
     webhook_info = await bot.get_webhook_info()
     if webhook_info.url != WEBHOOK_URL:
         await bot.set_webhook(WEBHOOK_URL, secret_token=TG_SECRET_TOKEN)
-        print(f"Webhook установлен: {WEBHOOK_URL}")
+        logger.info(f"Webhook установлен: {WEBHOOK_URL}")
 
 # --- Отключение базы при завершении ---
 @app.on_event("shutdown")
@@ -90,7 +104,12 @@ async def telegram_webhook(request: Request):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     update_data = await request.json()
-    print(f"Получено обновление: {update_data}")
-    update = Update.model_validate(update_data, context={"bot": bot})
-    await dp.feed_update(bot, update)
+    logger.info(f"Получено обновление: {update_data}")  # Отладка
+    try:
+        update = Update.model_validate(update_data, context={"bot": bot})
+        logger.info(f"Обновление успешно преобразовано: {update}")  # Отладка
+        await dp.feed_update(bot, update)
+        logger.info("Обновление передано в Dispatcher")  # Отладка
+    except Exception as e:
+        logger.info(f"Ошибка при обработке обновления: {e}")  # Отладка
     return {"ok": True}

@@ -16,7 +16,7 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 # --- Инициализация бота и диспетчера ---
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot=bot)  # ⚡ важно передавать bot
+dp = Dispatcher(bot=bot)
 app = FastAPI()
 
 # --- Роутеры ---
@@ -27,7 +27,6 @@ message_router = Router()
 @app.on_event("startup")
 async def startup():
     await connect()
-    # Установка webhook
     webhook_info = await bot.get_webhook_info()
     if webhook_info.url != WEBHOOK_URL:
         await bot.set_webhook(WEBHOOK_URL, secret_token=TG_SECRET_TOKEN)
@@ -44,11 +43,10 @@ async def handle_history(msg: types.Message):
     chat_id = msg.chat.id
     user_id = msg.from_user.id
 
-    # парсим число сообщений
     try:
         parts = msg.text.strip().split()
         num = int(parts[1]) if len(parts) > 1 else 3
-        num = min(num, 10)  # максимум 10
+        num = min(num, 10)
     except ValueError:
         await msg.answer("Неверный формат команды. Используйте /history {число}")
         return
@@ -67,10 +65,6 @@ async def handle_history(msg: types.Message):
 # --- Хэндлер обычных сообщений ---
 @message_router.message()
 async def handle_message(msg: types.Message):
-    # Игнорируем команды, чтобы они не уходили в LLM
-    if msg.text.startswith("/"):
-        return
-
     chat_id = msg.chat.id
     user_id = msg.from_user.id
     user_input = msg.text

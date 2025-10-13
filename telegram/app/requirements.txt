@@ -6,3 +6,5 @@ python-dotenv
 asyncpg
 sqlalchemy
 databases
+httpx
+psycopg2-binary>=2.9

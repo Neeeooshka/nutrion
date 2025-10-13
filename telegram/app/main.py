@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 from fastapi import FastAPI, Request, HTTPException
-from aiogram import Bot, Dispatcher, types, Router
+from aiogram import Bot, Dispatcher, types, Router, F
 from aiogram.types import Update
 from aiogram.filters import Command
 from backend.llm_memory import ask_llm  # асинхронный
@@ -41,10 +41,20 @@ app = FastAPI()
 command_router = Router()
 message_router = Router()
 
+# Хэндлер на команду /start (самый специфичный)
+@command_router.message(Command("start"))
+async def cmd_start(message: types.Message):
+    await message.answer("Привет! Я Нутрион — твой AI-ассистент по питанию и тренировкам\nХочешь, я помогу рассчитать калорийность и составлю меню\nили распишу план тренировок для мощной бицухи или ягодицы?")
+
+
+# Хэндлер на получение фото
+@message_router.message(F.photo)
+async def handle_photo(message: types.Message):
+    await message.answer("Это должно быть очень вкусно! Скоро я научусь считать калории, а пока можешь прислать мне еще фоток ;-)")
+    
 # --- Хэндлер команды /history ---
 @command_router.message(Command("history"))
 async def handle_history(msg: types.Message):
-    logger.info(f"Команда /history получена: {msg.text}")
     chat_id = msg.chat.id
     user_id = msg.from_user.id
 
@@ -89,6 +99,7 @@ dp.include_router(message_router)
 @app.on_event("startup")
 async def startup():
     await connect()
+    await bot.set_webhook(WEBHOOK_URL, secret_token=TG_SECRET_TOKEN)
     webhook_info = await bot.get_webhook_info()
     if webhook_info.url != WEBHOOK_URL:
         await bot.set_webhook(WEBHOOK_URL, secret_token=TG_SECRET_TOKEN)
@@ -103,21 +114,27 @@ async def shutdown():
 # --- Прием обновлений от Telegram ---
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
-    logger.error('check out')
     token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
     if token != TG_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     update_data = await request.json()
-    print("receive update", flush=True)  # Отладка
-    sys.stdout.flush()
-    print(f"Получено обновление: {update_data}", flush=True)  # Отладка
-    sys.stdout.flush()
+    print(update_data)
+     # --- 🧩 Игнорируем системные события (добавление в группу, изменение статуса и т.д.) ---
+    if "my_chat_member" in update_data or "chat_member" in update_data:
+        logger.info("Игнорирую системное обновление (добавление/удаление бота)")
+        return {"ok": True}
+
+    message = update_data.get("message")
+    if message:
+        # Игнорируем события приглашения участников
+        if "new_chat_members" in message or "left_chat_member" in message:
+            logger.info("Игнорирую сообщение о добавлении/удалении участника")
+            return {"ok": True}
+                
     try:
         update = Update.model_validate(update_data, context={"bot": bot})
-        logger.info(f"Обновление успешно преобразовано: {update}", flush=True)  # Отладка
         await dp.feed_update(bot, update)
-        logger.info("Обновление передано в Dispatcher")  # Отладка
     except Exception as e:
         logger.info(f"Ошибка при обработке обновления: {e}")  # Отладка
     return {"ok": True}

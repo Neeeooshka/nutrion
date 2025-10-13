@@ -33,21 +33,7 @@ async def startup():
 async def shutdown():
     await disconnect()
 
-# --- Обработка входящих сообщений ---
-@dp.message()
-async def handle_message(msg: types.Message):
-    chat_id = msg.chat.id
-    user_id = msg.from_user.id
-    user_input = msg.text
-    try:
-        answer = await ask_llm(chat_id, user_id, user_input)  # если ask_llm асинхронный
-        # сохраняем в базу
-        await add_to_memory(chat_id, user_id, user_input, answer)
-        await msg.answer(answer)
-    except Exception as e:
-        await msg.answer("Произошла ошибка при обработке запроса 😕")
-        print("Error:", e)
-
+# --- Хэндлер команды /history ---
 @dp.message(commands=["history"])
 async def handle_history(msg: types.Message):
     chat_id = msg.chat.id
@@ -57,6 +43,8 @@ async def handle_history(msg: types.Message):
     try:
         parts = msg.text.strip().split()
         num = int(parts[1]) if len(parts) > 1 else 3
+        if num > 10:
+            num = 10
     except ValueError:
         await msg.answer("Неверный формат команды. Используйте /history {число}")
         return
@@ -71,7 +59,21 @@ async def handle_history(msg: types.Message):
         history_text += f"{i}. Ты: {row['user_message']}\n   AI: {row['ai_response']}\n\n"
 
     await msg.answer(history_text.strip())
-    
+
+# --- Общий хэндлер на все текстовые сообщения ---
+@dp.message()
+async def handle_message(msg: types.Message):
+    chat_id = msg.chat.id
+    user_id = msg.from_user.id
+    user_input = msg.text
+    try:
+        answer = await ask_llm(chat_id, user_id, user_input)  # асинхронный запрос к LLM
+        await add_to_memory(chat_id, user_id, user_input, answer)  # сохраняем в историю
+        await msg.answer(answer)
+    except Exception as e:
+        await msg.answer("Произошла ошибка при обработке запроса 😕")
+        print("Error:", e)
+
 # --- Прием обновлений от Telegram ---
 @app.post("/webhook")
 async def telegram_webhook(request: Request):

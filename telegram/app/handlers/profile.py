@@ -1,3 +1,4 @@
+# handlers/profile.py
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup, State
@@ -26,7 +27,7 @@ async def cmd_start(msg: types.Message, state: FSMContext):
     await msg.answer("🔹 Укажи свой пол (м/ж):")
     await state.set_state(ProfileForm.gender)
 
-# --- Анкета шаг 1 ---
+# --- FSM шаги анкеты ---
 @profile_router.message(ProfileForm.gender)
 async def process_gender(msg: types.Message, state: FSMContext):
     gender = msg.text.strip().lower()
@@ -37,7 +38,6 @@ async def process_gender(msg: types.Message, state: FSMContext):
     await msg.answer("📅 Укажи свой возраст (в годах):")
     await state.set_state(ProfileForm.age)
 
-# --- Анкета шаг 2 ---
 @profile_router.message(ProfileForm.age)
 async def process_age(msg: types.Message, state: FSMContext):
     if not msg.text.isdigit() or int(msg.text) < 10 or int(msg.text) > 100:
@@ -47,7 +47,6 @@ async def process_age(msg: types.Message, state: FSMContext):
     await msg.answer("⚖️ Укажи свой вес (в кг):")
     await state.set_state(ProfileForm.weight)
 
-# --- Анкета шаг 3 ---
 @profile_router.message(ProfileForm.weight)
 async def process_weight(msg: types.Message, state: FSMContext):
     try:
@@ -59,17 +58,14 @@ async def process_weight(msg: types.Message, state: FSMContext):
     await msg.answer("🎯 Какая у тебя цель?\n\n1️⃣ Похудеть\n2️⃣ Поддерживать форму\n3️⃣ Набрать массу")
     await state.set_state(ProfileForm.goal)
 
-# --- Анкета шаг 4 ---
 @profile_router.message(ProfileForm.goal)
 async def process_goal(msg: types.Message, state: FSMContext):
-    text = msg.text.strip().lower()
     goals = {"1": "Похудеть", "2": "Поддерживать форму", "3": "Набрать массу"}
-    goal = goals.get(text) or msg.text.capitalize()
+    goal = goals.get(msg.text.strip()) or msg.text.strip().capitalize()
     await state.update_data(goal=goal)
-    await msg.answer("🥗 Какое у тебя питание?\n\nНапример: 'Всеядный', 'Вегетарианец', 'Кето' и т.д.")
+    await msg.answer("🥗 Какое у тебя питание?\nНапример: 'Всеядный', 'Вегетарианец', 'Кето' и т.д.")
     await state.set_state(ProfileForm.diet)
 
-# --- Анкета шаг 5 ---
 @profile_router.message(ProfileForm.diet)
 async def process_diet(msg: types.Message, state: FSMContext):
     await state.update_data(diet=msg.text.strip())
@@ -82,7 +78,7 @@ async def process_diet(msg: types.Message, state: FSMContext):
     await state.clear()
 
     summary = (
-        f"✅ Отлично! Вот что я запомнил:\n\n"
+        f"✅ Отлично! Я запомнил твой профиль:\n\n"
         f"👤 Пол: {data['gender'].upper()}\n"
         f"📅 Возраст: {data['age']} лет\n"
         f"⚖️ Вес: {data['weight']} кг\n"
@@ -129,3 +125,21 @@ async def cmd_help(msg: types.Message):
         "/help — показать это меню\n"
     )
     await msg.answer(text, parse_mode="Markdown")
+
+# --- Автозапуск анкеты только если профиль не заполнен и FSM не активен ---
+@profile_router.message(~F.text.startswith("/"))
+async def auto_start_profile(msg: types.Message, state: FSMContext):
+    chat_id = msg.chat.id
+    user_id = msg.from_user.id
+
+    # Если FSM активен, пропускаем
+    if await state.get_state() is not None:
+        return  # ничего не делаем, сообщение пойдет дальше
+
+    profile = await get_profile(chat_id, user_id)
+
+    if not profile:
+        # Профиль не заполнен — запускаем анкету
+        await cmd_start(msg, state)
+        return  # сообщение обработано, дальше не пойдет
+    # Если профиль есть, **не делаем return**, чтобы сообщение дальше пошло в message_router

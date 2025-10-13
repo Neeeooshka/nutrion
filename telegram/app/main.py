@@ -6,7 +6,6 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import Update
 
 from backend.db import connect, disconnect
-from handlers.start import start_router
 from handlers.photo import photo_router
 from handlers.message import message_router
 from handlers.history import history_router
@@ -27,11 +26,10 @@ dp = Dispatcher()
 app = FastAPI()
 
 # --- Подключаем роутеры ---
-dp.include_router(start_router)
-dp.include_router(photo_router)
-dp.include_router(message_router)
-dp.include_router(history_router)
 dp.include_router(profile_router)
+dp.include_router(photo_router)
+dp.include_router(history_router)
+dp.include_router(message_router)
 
 # --- Стартап / шутдаун ---
 @app.on_event("startup")

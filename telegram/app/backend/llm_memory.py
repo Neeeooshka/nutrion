@@ -3,6 +3,7 @@ import os
 import httpx
 from backend.db import database
 from backend.models import user_memory
+from backend.llm_profile import get_profile
 
 LLM_URL = os.getenv("LLM_URL")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
@@ -37,8 +38,26 @@ async def add_to_memory(chat_id: int, user_id: int, user_message: str, ai_respon
 
 async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
     """Формируем полный промт с контекстом и отправляем на LLM"""
+    # Получаем профиль пользователя
+    profile = await get_profile(chat_id, user_id)
+    
+    profile_info = ""
+    if profile:
+        profile_info = (
+            f"Профиль пользователя:\n"
+            f"- Пол: {profile['gender']}\n"
+            f"- Возраст: {profile['age']} лет\n"
+            f"- Вес: {profile['weight']} кг\n"
+            f"- Цель: {profile['goal']}\n"
+            f"- Питание: {profile['diet']}\n\n"
+        )
+    
+    # Собираем контекст из истории
     context = await get_user_context(chat_id, user_id)
-    prompt = f"{context}\nUser: {user_message}" if context else f"User: {user_message}"
+    if context:
+        prompt = f"{profile_info}{context}\nUser: {user_message}"
+    else:
+        prompt = f"{profile_info}User: {user_message}"
 
     headers = {"X-API-Key": INTERNAL_API_KEY, "Content-Type": "application/json"}
 

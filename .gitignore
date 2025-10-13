@@ -19,3 +19,5 @@ vendor
 
 #npm
 node_modules
+
+.env

@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import Update
-from aiogram.filters import Command
+from aiogram.filters import Command, Not
 from backend.llm_memory import ask_llm  # асинхронный
 from backend.db import connect, disconnect
 from backend.llm_history import add_to_memory, get_history
@@ -26,6 +26,7 @@ message_router = Router()
 # --- Хэндлер команды /history ---
 @command_router.message(Command("history"))
 async def handle_history(msg: types.Message):
+    print(f"Команда /history получена: {msg.text}")
     chat_id = msg.chat.id
     user_id = msg.from_user.id
 
@@ -49,7 +50,7 @@ async def handle_history(msg: types.Message):
     await msg.answer(history_text.strip())
 
 # --- Хэндлер обычных сообщений ---
-@message_router.message()
+@message_router.message(~Command())
 async def handle_message(msg: types.Message):
     chat_id = msg.chat.id
     user_id = msg.from_user.id
@@ -89,6 +90,7 @@ async def telegram_webhook(request: Request):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     update_data = await request.json()
+    print(f"Получено обновление: {update_data}")
     update = Update.model_validate(update_data, context={"bot": bot})
     await dp.feed_update(bot, update)
     return {"ok": True}

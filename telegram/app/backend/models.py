@@ -30,3 +30,15 @@ user_memory = sqlalchemy.Table(
     Column("ai_response", Text, nullable=False),
     Column("created_at", DateTime, server_default=func.now())
 )
+
+profiles = Table(
+    "profiles",
+    metadata,
+    Column("chat_id", Integer, primary_key=True),
+    Column("user_id", Integer, primary_key=True),
+    Column("gender", String(1), nullable=False),
+    Column("age", Integer, nullable=False),
+    Column("weight", Float, nullable=False),
+    Column("goal", String, nullable=False),
+    Column("diet", String, nullable=False),
+)

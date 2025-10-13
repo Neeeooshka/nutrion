@@ -16,26 +16,12 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 # --- Инициализация бота и диспетчера ---
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot=bot)
+dp = Dispatcher()
 app = FastAPI()
 
 # --- Роутеры ---
 command_router = Router()
 message_router = Router()
-
-# --- Подключение к базе при старте ---
-@app.on_event("startup")
-async def startup():
-    await connect()
-    webhook_info = await bot.get_webhook_info()
-    if webhook_info.url != WEBHOOK_URL:
-        await bot.set_webhook(WEBHOOK_URL, secret_token=TG_SECRET_TOKEN)
-        print(f"Webhook установлен: {WEBHOOK_URL}")
-
-# --- Отключение базы при завершении ---
-@app.on_event("shutdown")
-async def shutdown():
-    await disconnect()
 
 # --- Хэндлер команды /history ---
 @command_router.message(Command("history"))
@@ -77,8 +63,23 @@ async def handle_message(msg: types.Message):
         print("Error:", e)
 
 # --- Подключаем роутеры к Dispatcher ---
-dp.include_router(command_router)  # ⚡ сначала команды
-dp.include_router(message_router)  # затем обычные сообщения
+dp.include_router(command_router)
+dp.include_router(message_router)
+
+# --- Подключение к базе при старте ---
+@app.on_event("startup")
+async def startup():
+    await connect()
+    webhook_info = await bot.get_webhook_info()
+    if webhook_info.url != WEBHOOK_URL:
+        await bot.set_webhook(WEBHOOK_URL, secret_token=TG_SECRET_TOKEN)
+        print(f"Webhook установлен: {WEBHOOK_URL}")
+
+# --- Отключение базы при завершении ---
+@app.on_event("shutdown")
+async def shutdown():
+    await bot.session.close()
+    await disconnect()
 
 # --- Прием обновлений от Telegram ---
 @app.post("/webhook")

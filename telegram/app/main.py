@@ -4,7 +4,7 @@ import logging
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import Update
-from aiogram.filters import Command, Not
+from aiogram.filters import Command
 from backend.llm_memory import ask_llm  # асинхронный
 from backend.db import connect, disconnect
 from backend.llm_history import add_to_memory, get_history
@@ -21,10 +21,14 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
+logging.getLogger("aiogram").setLevel(logging.INFO)
+logging.getLogger("aiogram").handlers = [logging.StreamHandler(sys.stdout)]
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True  # Принудительно переопределяет существующие обработчики
 )
 logger = logging.getLogger(__name__)
 
@@ -64,7 +68,7 @@ async def handle_history(msg: types.Message):
     await msg.answer(history_text.strip())
 
 # --- Хэндлер обычных сообщений ---
-@message_router.message(~Command())
+@message_router.message(~F.text.startswith("/"))
 async def handle_message(msg: types.Message):
     chat_id = msg.chat.id
     user_id = msg.from_user.id
@@ -99,15 +103,19 @@ async def shutdown():
 # --- Прием обновлений от Telegram ---
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
+    logger.error('check out')
     token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
     if token != TG_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     update_data = await request.json()
-    logger.info(f"Получено обновление: {update_data}")  # Отладка
+    print("receive update", flush=True)  # Отладка
+    sys.stdout.flush()
+    print(f"Получено обновление: {update_data}", flush=True)  # Отладка
+    sys.stdout.flush()
     try:
         update = Update.model_validate(update_data, context={"bot": bot})
-        logger.info(f"Обновление успешно преобразовано: {update}")  # Отладка
+        logger.info(f"Обновление успешно преобразовано: {update}", flush=True)  # Отладка
         await dp.feed_update(bot, update)
         logger.info("Обновление передано в Dispatcher")  # Отладка
     except Exception as e:

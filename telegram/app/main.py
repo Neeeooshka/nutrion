@@ -14,9 +14,9 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 TG_SECRET_TOKEN = os.getenv("TG_SECRET_TOKEN")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
-# --- Инициализация бота ---
+# --- Инициализация бота и диспетчера ---
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot=bot)  # ⚡ важно передавать bot
 app = FastAPI()
 
 # --- Роутеры ---
@@ -67,7 +67,7 @@ async def handle_history(msg: types.Message):
 # --- Хэндлер обычных сообщений ---
 @message_router.message()
 async def handle_message(msg: types.Message):
-    # Игнорируем команды (чтобы они не уходили в LLM)
+    # Игнорируем команды, чтобы они не уходили в LLM
     if msg.text.startswith("/"):
         return
 
@@ -83,8 +83,8 @@ async def handle_message(msg: types.Message):
         print("Error:", e)
 
 # --- Подключаем роутеры к Dispatcher ---
-dp.include_router(command_router)
-dp.include_router(message_router)
+dp.include_router(command_router)  # ⚡ сначала команды
+dp.include_router(message_router)  # затем обычные сообщения
 
 # --- Прием обновлений от Telegram ---
 @app.post("/webhook")

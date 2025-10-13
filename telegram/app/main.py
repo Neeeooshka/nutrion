@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, Request, HTTPException
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import Update
 from backend.llm_memory import ask_llm  # асинхронный
 from backend.db import connect, disconnect
@@ -18,6 +18,10 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 app = FastAPI()
 
+# --- Роутеры ---
+command_router = Router()
+message_router = Router()
+
 # --- Подключение к базе при старте ---
 @app.on_event("startup")
 async def startup():
@@ -34,17 +38,15 @@ async def shutdown():
     await disconnect()
 
 # --- Хэндлер команды /history ---
-@dp.message(commands=["history"])
+@command_router.message(commands=["history"])
 async def handle_history(msg: types.Message):
     chat_id = msg.chat.id
     user_id = msg.from_user.id
 
-    # парсим число сообщений
     try:
         parts = msg.text.strip().split()
         num = int(parts[1]) if len(parts) > 1 else 3
-        if num > 10:
-            num = 10
+        num = min(num, 10)  # максимум 10
     except ValueError:
         await msg.answer("Неверный формат команды. Используйте /history {число}")
         return
@@ -60,19 +62,27 @@ async def handle_history(msg: types.Message):
 
     await msg.answer(history_text.strip())
 
-# --- Общий хэндлер на все текстовые сообщения ---
-@dp.message()
+# --- Хэндлер обычных сообщений ---
+@message_router.message()
 async def handle_message(msg: types.Message):
+    # Игнорируем команды
+    if msg.text.startswith("/"):
+        return
+
     chat_id = msg.chat.id
     user_id = msg.from_user.id
     user_input = msg.text
     try:
-        answer = await ask_llm(chat_id, user_id, user_input)  # асинхронный запрос к LLM
-        await add_to_memory(chat_id, user_id, user_input, answer)  # сохраняем в историю
+        answer = await ask_llm(chat_id, user_id, user_input)
+        await add_to_memory(chat_id, user_id, user_input, answer)
         await msg.answer(answer)
     except Exception as e:
         await msg.answer("Произошла ошибка при обработке запроса 😕")
         print("Error:", e)
+
+# --- Подключаем роутеры к Dispatcher ---
+dp.include_router(command_router)
+dp.include_router(message_router)
 
 # --- Прием обновлений от Telegram ---
 @app.post("/webhook")

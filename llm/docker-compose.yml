@@ -1,17 +1,16 @@
-networks:
-  nutrion_net:
-    driver: bridge
+version: "3.9"
 
 services:
   llm:
     build: ./app
     container_name: nutrion_llm
-    env_file: ./app/.env
     restart: always
-    ports:
-      - "8000:8000"
+    env_file:
+      - ../.env
     networks:
       - nutrion_net
+    ports:
+      - "8001:8000"
 
   nginx:
     image: nginx:latest
@@ -25,3 +24,7 @@ services:
     restart: always
     networks:
       - nutrion_net
+
+networks:
+  nutrion_net:
+    driver: bridge

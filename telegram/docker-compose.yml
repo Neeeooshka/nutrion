@@ -1,22 +1,33 @@
-version: "3.8"
+version: "3.9"
 
 services:
   bot:
     build: ./app
-    env_file: ./app/.env
+    container_name: nutrion_bot
     restart: always
+    env_file:
+      - ../.env
     ports:
       - "8069:8000"
     networks:
       - nutrion_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    environment:
-      - TZ=Europe/Moscow
+
+  db:
+    image: postgres:17
+    container_name: nutrion_bot_db
+    restart: always
+    env_file:
+      - ../.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - nutrion_net
 
 networks:
   nutrion_net:
     driver: bridge
+
+volumes:
+  pgdata:

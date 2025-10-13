@@ -3,3 +3,6 @@ uvicorn[standard]
 aiogram==3.*
 requests
 python-dotenv
+asyncpg
+sqlalchemy
+databases

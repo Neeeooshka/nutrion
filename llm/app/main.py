@@ -22,13 +22,14 @@ async def ask(request: Request):
     
     data = await request.json()
     prompt = data.get("prompt", DEFAULT_PROMPT)
+    context = data.get("context", "")
 
     try:
         response = client.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": f"{context}\n{prompt}"}
             ],
             temperature=0.7,
             max_output_tokens=400

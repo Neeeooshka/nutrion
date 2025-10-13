@@ -1,5 +1,6 @@
+# backend/models.py
 import sqlalchemy
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float
 from sqlalchemy.sql import func
 from backend.db import database
 
@@ -25,7 +26,7 @@ user_memory = sqlalchemy.Table(
     Column("id", Integer, primary_key=True),
     Column("chat_id", String, nullable=False),
     Column("user_id", String, nullable=False),
-    Column("context", Text, default=""),
-    Column("updated_at", DateTime, server_default=func.now(), onupdate=func.now()),
-    sqlalchemy.UniqueConstraint("chat_id", "user_id", name="unique_chat_user")
+    Column("user_message", Text, nullable=False),
+    Column("ai_response", Text, nullable=False),
+    Column("created_at", DateTime, server_default=func.now())
 )

@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import Update
+from aiogram.filters import Command
 from backend.llm_memory import ask_llm  # асинхронный
 from backend.db import connect, disconnect
 from backend.llm_history import add_to_memory, get_history
@@ -38,11 +39,12 @@ async def shutdown():
     await disconnect()
 
 # --- Хэндлер команды /history ---
-@command_router.message(commands=["history"])
+@command_router.message(Command("history"))
 async def handle_history(msg: types.Message):
     chat_id = msg.chat.id
     user_id = msg.from_user.id
 
+    # парсим число сообщений
     try:
         parts = msg.text.strip().split()
         num = int(parts[1]) if len(parts) > 1 else 3
@@ -65,7 +67,7 @@ async def handle_history(msg: types.Message):
 # --- Хэндлер обычных сообщений ---
 @message_router.message()
 async def handle_message(msg: types.Message):
-    # Игнорируем команды
+    # Игнорируем команды (чтобы они не уходили в LLM)
     if msg.text.startswith("/"):
         return
 

@@ -31,7 +31,7 @@ user_memory = sqlalchemy.Table(
     Column("created_at", DateTime, server_default=func.now())
 )
 
-profiles = Table(
+profiles = sqlalchemy.Table(
     "profiles",
     metadata,
     Column("chat_id", Integer, primary_key=True),

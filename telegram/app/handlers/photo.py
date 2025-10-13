@@ -1,5 +1,4 @@
-from aiogram import Router, types
-from aiogram.filters import F
+from aiogram import Router, types, F
 
 photo_router = Router()
 

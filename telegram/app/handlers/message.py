@@ -4,7 +4,7 @@ from backend.llm_memory import ask_llm
 from backend.llm_history import add_to_memory
 from backend.llm_profile import get_profile
 from handlers.profile import start_profile_flow
-from config.thinking_phrases import get_random_phrase
+from config.thinking import get_random_phrase
 import logging
 
 message_router = Router()

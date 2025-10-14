@@ -4,7 +4,6 @@ import logging
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Update
-from aiogram_logger import setup_logger
 from aiogram.fsm.storage.redis import RedisStorage
 
 from backend.db import connect, disconnect
@@ -17,6 +16,7 @@ from middlewares.logger import LoggingMiddleware
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 TG_SECRET_TOKEN = os.getenv("TG_SECRET_TOKEN")
+REDIS_URL = os.getenv("REDIS_URL")
 
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
@@ -25,14 +25,11 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdo
 logger = logging.getLogger(__name__)
 
 #storage
-storage = RedisStorage.from_url("redis://redis:6379/0")
+storage = RedisStorage.from_url(REDIS_URL)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(storage=storage)
 app = FastAPI()
-
-# Настраиваем aiogram-logger
-setup_logger(dp)
 
 # Добавляем middleware для всех типов апдейтов
 dp.message.middleware(LoggingMiddleware())

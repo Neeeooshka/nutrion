@@ -39,8 +39,8 @@ services:
     image: redis:7-alpine
     container_name: nutrion_redis
     restart: always
-    ports:
-      - "6379:6379"
+    volumes:
+      - redisdata:/var/lib/redis/data
     networks:
       - nutrion_net
 
@@ -50,3 +50,4 @@ networks:
 
 volumes:
   pgdata:
+  redisdata:

@@ -3,7 +3,8 @@ from aiogram.fsm.context import FSMContext
 from backend.llm_memory import ask_llm
 from backend.llm_history import add_to_memory
 from backend.llm_profile import get_profile
-from functions.start_flow import start_profile_flow
+from handlers.profile import start_profile_flow
+from config.thinking_phrases import get_random_phrase
 import logging
 
 message_router = Router()
@@ -24,8 +25,15 @@ async def handle_message(msg: types.Message, state: FSMContext):
         
     user_input = msg.text
     try:
+        # Фразо размышления
+        thinking_text = get_random_phrase()
+        await msg.answer(thinking_text)
+        
+        # Запрашиваем модель (LLM)
         answer = await ask_llm(chat_id, user_id, user_input)
         await add_to_memory(chat_id, user_id, user_input, answer)
+        
+        # Ответ модели
         await msg.answer(answer)
         logger.info("Получен ответ от LLM")
     except Exception as e:

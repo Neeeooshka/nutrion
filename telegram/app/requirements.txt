@@ -8,4 +8,4 @@ sqlalchemy
 databases
 httpx
 psycopg2-binary>=2.9
-aiogram-logger>=0.2.1
+redis>=5.0.0

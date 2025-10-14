@@ -30,6 +30,8 @@ services:
     image: amir20/dozzle:latest
     container_name: dozzle
     restart: always
+    environment:
+      - BASE_PATH=/dozzle
     ports:
       - 8008:8080
     volumes:

@@ -5,7 +5,9 @@ from backend.llm_history import add_to_memory
 from backend.llm_profile import get_profile
 from handlers.profile import start_profile_flow
 from config.thinking import get_random_phrase
+from aiogram.types import ChatActions
 import logging
+import asyncio
 
 message_router = Router()
 logger = logging.getLogger(__name__)
@@ -26,10 +28,13 @@ async def handle_message(msg: types.Message, state: FSMContext):
     user_input = msg.text
     try:
         # Фразо размышления
+        await msg.bot.send_chat_action(msg.chat.id, ChatActions.TYPING)
         thinking_text = get_random_phrase()
+        await asyncio.sleep(1)
         await msg.answer(thinking_text)
         
         # Запрашиваем модель (LLM)
+        await msg.bot.send_chat_action(msg.chat.id, ChatActions.TYPING)
         answer = await ask_llm(chat_id, user_id, user_input)
         await add_to_memory(chat_id, user_id, user_input, answer)
         

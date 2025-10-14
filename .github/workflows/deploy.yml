@@ -1,0 +1,59 @@
+name: Deploy Nutrition AI App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-llm:
+    name: Deploy LLM service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to LLM server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.LLM_SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo ">>> Pulling latest code on LLM server"
+            cd /opt/nutrion
+            git pull origin main
+
+            echo ">>> Rebuilding LLM Docker service"
+            cd /opt/nutrion/llm
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+
+            echo ">>> LLM service deployed successfully"
+
+  deploy-telegram:
+    name: Deploy Telegram bot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Telegram server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TELEGRAM_SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo ">>> Pulling latest code on Telegram server"
+            cd /opt/nutrion
+            git pull origin main
+
+            echo ">>> Rebuilding Telegram Docker service"
+            cd /opt/nutrion/telegram
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+
+            echo ">>> Telegram bot deployed successfully"

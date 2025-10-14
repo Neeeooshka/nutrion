@@ -18,6 +18,7 @@ async def handle_message(msg: types.Message, state: FSMContext):
     profile = await get_profile(chat_id, user_id)
     if not profile:
         # Профиль не заполнен — запускаем анкету
+        logger.info("Запрос с незаполненным профилем")
         await cmd_start(msg, state)
         return
         
@@ -26,6 +27,7 @@ async def handle_message(msg: types.Message, state: FSMContext):
         answer = await ask_llm(chat_id, user_id, user_input)
         await add_to_memory(chat_id, user_id, user_input, answer)
         await msg.answer(answer)
+        logger.info("Получен ответ от LLM")
     except Exception as e:
         await msg.answer("Произошла ошибка при обработке запроса 😕")
         logger.exception(e)

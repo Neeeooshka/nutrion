@@ -26,12 +26,23 @@ services:
     networks:
       - nutrion_net
   
+  nginx:
+    image: nginx:latest
+    container_name: nutrion_nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    networks:
+      - nutrion_net
+  
   dozzle:
     image: amir20/dozzle:latest
     container_name: dozzle
     restart: always
-    environment:
-      - BASE_PATH=/dozzle
     ports:
       - 8008:8080
     volumes:

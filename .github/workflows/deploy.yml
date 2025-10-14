@@ -20,6 +20,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e  # остановить скрипт при любой ошибке
             echo ">>> Pulling latest code on LLM server"
             cd /opt/nutrion
             git pull origin main
@@ -46,6 +47,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e  # остановить скрипт при любой ошибке
             echo ">>> Pulling latest code on Telegram server"
             cd /opt/nutrion
             git pull origin main

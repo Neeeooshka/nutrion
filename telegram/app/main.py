@@ -4,6 +4,7 @@ import logging
 from fastapi import FastAPI, Request, HTTPException
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Update
+from aiogram_logger import setup_logger
 
 from backend.db import connect, disconnect
 from handlers.photo import photo_router
@@ -24,6 +25,9 @@ logger = logging.getLogger(__name__)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 app = FastAPI()
+
+# Настраиваем aiogram-logger
+setup_logger(dp)
 
 # --- Подключаем роутеры ---
 dp.include_router(profile_router)

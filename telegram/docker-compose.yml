@@ -25,6 +25,16 @@ services:
       - "5432:5432"
     networks:
       - nutrion_net
+  
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    ports:
+      - 8008:8008
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nutrion_net
 
 networks:
   nutrion_net:

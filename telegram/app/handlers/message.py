@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from backend.llm_memory import ask_llm
 from backend.llm_history import add_to_memory
 from backend.llm_profile import get_profile
-from handlers.profile import cmd_start
+from functions.start_flow import start_profile_flow
 import logging
 
 message_router = Router()
@@ -19,7 +19,7 @@ async def handle_message(msg: types.Message, state: FSMContext):
     if not profile:
         # Профиль не заполнен — запускаем анкету
         logger.info("Запрос с незаполненным профилем")
-        await cmd_start(msg, state)
+        await start_profile_flow(msg, state)
         return
         
     user_input = msg.text

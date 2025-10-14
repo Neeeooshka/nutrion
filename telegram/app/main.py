@@ -12,6 +12,7 @@ from handlers.photo import photo_router
 from handlers.message import message_router
 from handlers.history import history_router
 from handlers.profile import profile_router
+from middlewares.logger import LoggingMiddleware
 
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
@@ -38,6 +39,9 @@ dp.include_router(profile_router)
 dp.include_router(photo_router)
 dp.include_router(history_router)
 dp.include_router(message_router)
+
+# Добавляем middleware
+dp.update.middleware(LoggingMiddleware())
 
 # --- Стартап / шутдаун ---
 @app.on_event("startup")

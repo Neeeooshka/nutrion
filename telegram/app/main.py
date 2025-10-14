@@ -34,14 +34,16 @@ app = FastAPI()
 # Настраиваем aiogram-logger
 setup_logger(dp)
 
+# Добавляем middleware для всех типов апдейтов
+dp.message.middleware(LoggingMiddleware())
+dp.callback_query.middleware(LoggingMiddleware())
+dp.inline_query.middleware(LoggingMiddleware())
+
 # --- Подключаем роутеры ---
 dp.include_router(profile_router)
 dp.include_router(photo_router)
 dp.include_router(history_router)
 dp.include_router(message_router)
-
-# Добавляем middleware
-dp.update.middleware(LoggingMiddleware())
 
 # --- Стартап / шутдаун ---
 @app.on_event("startup")

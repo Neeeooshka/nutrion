@@ -34,6 +34,15 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - nutrion_net
+  
+  redis:
+    image: redis:7-alpine
+    container_name: nutrion_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - nutrion_net
 
 networks:
   nutrion_net:

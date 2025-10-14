@@ -125,21 +125,3 @@ async def cmd_help(msg: types.Message):
         "/help — показать это меню\n"
     )
     await msg.answer(text, parse_mode="Markdown")
-
-# --- Автозапуск анкеты только если профиль не заполнен и FSM не активен ---
-@profile_router.message(~F.text.startswith("/"))
-async def auto_start_profile(msg: types.Message, state: FSMContext):
-    chat_id = msg.chat.id
-    user_id = msg.from_user.id
-
-    # Если FSM активен, пропускаем
-    if await state.get_state() is not None:
-        return  # ничего не делаем, сообщение пойдет дальше
-
-    profile = await get_profile(chat_id, user_id)
-
-    if not profile:
-        # Профиль не заполнен — запускаем анкету
-        await cmd_start(msg, state)
-        return  # сообщение обработано, дальше не пойдет
-    # Если профиль есть, **не делаем return**, чтобы сообщение дальше пошло в message_router

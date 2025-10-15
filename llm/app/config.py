@@ -1,3 +1,5 @@
+import os
+
 DEFAULT_PROMPT = "Привет! Я хочу совет по питанию и тренировкам."
 
 SYSTEM_PROMPT = (
@@ -10,8 +12,8 @@ SYSTEM_PROMPT = (
     "Если речь о тренировках — предложи реалистичные упражнения по уровню."
 )
 
-OPENAI_MODEL = "gpt-5-mini"  # можно легко заменить на другую модель
-OLLAMA_MODEL = "llama3.2:1b" # или qwen2.5:7b / llama3.2:3b
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
 MAX_TOKENS = 400
 TEMPERATURE = 0.7

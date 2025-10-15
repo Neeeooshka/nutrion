@@ -28,7 +28,15 @@ async def ask(
     prompt = data.get("prompt", DEFAULT_PROMPT)
     context = data.get("context", "")
     
-    return await orchestrator.ask(prompt, context)
+    result = await orchestrator.ask(prompt, context)
+    
+    return {
+        "answer": result.get("answer", "Извините, произошла ошибка"),
+        "provider": result.get("provider", "unknown"),
+        "model": result.get("model", "unknown"),
+        "status": "success" if "answer" in result else "error",
+        "error": result.get("error","")
+    }
     
 @router.post("/ask-agent")
 async def ask_agent(
@@ -47,4 +55,11 @@ async def ask_agent(
     agent_manager = AgentManager(orchestrator)
     
     full_prompt = f"{context}\n{prompt}" if context else prompt
-    return await agent_manager.route_request(full_prompt, agent_type)
+    result = await agent_manager.route_request(full_prompt, agent_type)
+    
+    return {
+        "answer": result.get("answer", "Извините, произошла ошибка"),
+        "agent_type": result.get("agent_type", "unknown"),
+        "status": result.get("status", "error"),
+        "error": result.get("error","")
+    }

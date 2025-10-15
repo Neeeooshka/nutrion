@@ -44,7 +44,7 @@ async def ask(request: Request):
                 {"role": "user", "content": f"{context}\n{prompt}"}
             ],
             temperature=0.7,
-            max_output_tokens=400
+            max_tokens=400
         )
         ai_text = response.choices[0].message['content']
         logger.info("Ответ успешно получен от модели.")

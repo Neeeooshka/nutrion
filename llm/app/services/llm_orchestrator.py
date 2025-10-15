@@ -16,7 +16,7 @@ class LLMOrchestrator:
             "openai": OpenAIService(),
             "ollama": OllamaService()
         }
-        self.current_provider = "openai"
+        self.current_provider = "ollama"
         self.openai_errors_count = 0
         self.MAX_OPENAI_ERRORS = 3
     

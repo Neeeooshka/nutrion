@@ -2,7 +2,7 @@
 Services package for LLM providers.
 """
 
-from .base_service import BaseLLMService
+from .llm_service import BaseLLMService
 from .openai_service import OpenAIService
 from .ollama_service import OllamaService
 from .llm_orchestrator import LLMOrchestrator

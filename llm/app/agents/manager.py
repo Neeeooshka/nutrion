@@ -26,29 +26,29 @@ class AgentManager:
         agent = self.agents.get(agent_type, self.agents["simple"])
         return await agent.process_query(user_query)
     
-        async def _detect_agent_type(self, query: str) -> str:
-            """Автоматическое определение типа агента для запроса"""
-            prompt = f"""
-            Определи тип запроса пользователя:
-            "{query}"
-            
-            Варианты:
-            - nutrition: вопросы по питанию, калориям, БЖУ, диетам
-            - planning: создание планов, программ, многошаговые цели  
-            - simple: простые вопросы, общие консультации
-            
-            Верни только одно слово: nutrition, planning или simple
-            """
-            
-            response = await self.orchestrator.ask(prompt)
-            
-            # ИЗВЛЕКАЕМ ТЕКСТ ИЗ СЛОВАРЯ
-            if isinstance(response, dict) and 'answer' in response:
-                agent_type = response['answer'].strip().lower()
-            elif isinstance(response, str):
-                agent_type = response.strip().lower()
-            else:
-                agent_type = "simple"  # fallback
-            
-            logger.info(f"🎯 Определен тип агента: {agent_type} для запроса: {query}")
-            return agent_type
+    async def _detect_agent_type(self, query: str) -> str:
+        """Автоматическое определение типа агента для запроса"""
+        prompt = f"""
+        Определи тип запроса пользователя:
+        "{query}"
+        
+        Варианты:
+        - nutrition: вопросы по питанию, калориям, БЖУ, диетам
+        - planning: создание планов, программ, многошаговые цели  
+        - simple: простые вопросы, общие консультации
+        
+        Верни только одно слово: nutrition, planning или simple
+        """
+        
+        response = await self.orchestrator.ask(prompt)
+        
+        # ИЗВЛЕКАЕМ ТЕКСТ ИЗ СЛОВАРЯ
+        if isinstance(response, dict) and 'answer' in response:
+            agent_type = response['answer'].strip().lower()
+        elif isinstance(response, str):
+            agent_type = response.strip().lower()
+        else:
+            agent_type = "simple"  # fallback
+        
+        logger.info(f"🎯 Определен тип агента: {agent_type} для запроса: {query}")
+        return agent_type

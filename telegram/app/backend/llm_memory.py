@@ -4,6 +4,7 @@ import httpx
 from backend.db import database
 from backend.models import user_memory
 from backend.llm_profile import get_profile
+from config.errors import get_random_error_phrase
 
 LLM_URL = os.getenv("LLM_URL")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")

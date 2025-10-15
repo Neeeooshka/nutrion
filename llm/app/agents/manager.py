@@ -10,11 +10,12 @@ class AgentManager:
         """Инициализация всех агентов"""
         from .nutrition import NutritionAgent
         from .planning import PlanningAgent
+        from .simple import SimpleAgent
         
         return {
             "nutrition": NutritionAgent(self.orchestrator),
             "planning": PlanningAgent(self.orchestrator),
-            "simple": self.orchestrator  # Простой агент как fallback
+            "simple": SimpleAgent(self.orchestrator)
         }
     
     async def route_request(self, user_query: str, agent_type: str = "auto") -> str:

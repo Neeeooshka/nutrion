@@ -62,7 +62,7 @@ async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
 
     headers = {"X-API-Key": INTERNAL_API_KEY, "Content-Type": "application/json"}
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=90) as client:
         resp = await client.post(
             f"{LLM_URL}/ask",
             json={"prompt": prompt},

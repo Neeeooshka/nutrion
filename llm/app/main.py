@@ -36,7 +36,7 @@ async def ask(request: Request):
     prompt = data.get("prompt", DEFAULT_PROMPT)
     context = data.get("context", "")
 
-    check_balance(client)
+    check_balance()
 
     try:
         response = client.chat.completions.create(

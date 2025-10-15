@@ -24,4 +24,4 @@ class SimpleAgent:
                 
         except Exception as e:
             logger.error(f"❌ Ошибка в SimpleAgent: {e}")
-            return f"Извините, произошла ошибка: {str(e)}"
+            return f"Ошибка: {str(e)}"

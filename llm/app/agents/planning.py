@@ -19,7 +19,7 @@ class PlanningAgent:
             return result
         except Exception as e:
             logger.error(f"❌ Ошибка в PlanningAgent: {e}")
-            return f"Извините, не удалось создать план. Ошибка: {str(e)}"
+            return f"Ошибка: {str(e)}"
     
     async def execute_plan(self, user_goal: str) -> str:
         """Выполнение многошагового плана"""

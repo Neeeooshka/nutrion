@@ -18,14 +18,21 @@ class AgentManager:
             "simple": SimpleAgent(self.orchestrator)
         }
     
-    async def route_request(self, user_query: str, agent_type: str = "auto") -> str:
+    async def route_request(self, user_query: str, agent_type: str = "auto") -> dict:
         """Маршрутизация запроса к нужному агенту"""
         # Автоматическое определение типа агента
         if agent_type == "auto":
             agent_type = await self._detect_agent_type(user_query)
         
         agent = self.agents.get(agent_type, self.agents["simple"])
-        return await agent.process_query(user_query)
+        answer = await agent.process_query(user_query)
+        
+        return {
+            "answer": "" if answer.startswith("Ошибка:") else answer,
+            "agent_type": agent_type,
+            "status": "error" if answer.startswith("Ошибка:") else "success",
+            "error": answer if answer.startswith("Ошибка:") else ""
+        }
     
     async def _detect_agent_type(self, query: str) -> str:
         """Автоматическое определение типа агента для запроса"""

@@ -17,28 +17,6 @@ def verify_api_key(request: Request):
         raise HTTPException(status_code=403, detail="Unauthorized")
 
 @router.post("/ask")
-async def ask(
-    request: Request,
-    orchestrator: LLMOrchestrator = Depends(get_llm_orchestrator)
-):
-    """Основной endpoint для запросов к LLM"""
-    verify_api_key(request)
-    
-    data = await request.json()
-    prompt = data.get("prompt", DEFAULT_PROMPT)
-    context = data.get("context", "")
-    
-    result = await orchestrator.ask(prompt, context)
-    
-    return {
-        "answer": result.get("answer", "Извините, произошла ошибка"),
-        "provider": result.get("provider", "unknown"),
-        "model": result.get("model", "unknown"),
-        "status": "success" if "answer" in result else "error",
-        "error": result.get("error","")
-    }
-    
-@router.post("/ask-agent")
 async def ask_agent(
     request: Request,
     orchestrator: LLMOrchestrator = Depends(get_llm_orchestrator)
@@ -58,7 +36,7 @@ async def ask_agent(
     result = await agent_manager.route_request(full_prompt, agent_type)
     
     return {
-        "answer": result.get("answer", "Извините, произошла ошибка"),
+        "answer": result.get("answer", ""),
         "agent_type": result.get("agent_type", "unknown"),
         "status": result.get("status", "error"),
         "error": result.get("error","")

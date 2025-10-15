@@ -1,3 +1,4 @@
+import os
 import ollama
 from .llm_service import BaseLLMService
 from config import OLLAMA_MODEL, SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS

@@ -4,7 +4,7 @@ import traceback
 import logging
 import sys
 from openai import OpenAI
-from app.config import SYSTEM_PROMPT, MODEL, DEFAULT_PROMPT
+from config import SYSTEM_PROMPT, MODEL, DEFAULT_PROMPT
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")

@@ -26,20 +26,21 @@ async def handle_message(msg: types.Message, state: FSMContext):
         
     user_input = msg.text
     try:
-        # Фразо размышления
-        await msg.bot.send_chat_action(chat_id=chat_id, action=types.ChatActions.TYPING)
+        # Фраза размышления
+        await msg.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         thinking_text = get_random_phrase()
         await asyncio.sleep(1)
         await msg.answer(thinking_text)
         
         # Запрашиваем модель (LLM)
-        await msg.bot.send_chat_action(chat_id=chat_id, action=types.ChatActions.TYPING)
+        await msg.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         answer = await ask_llm(chat_id, user_id, user_input)
         await add_to_memory(chat_id, user_id, user_input, answer)
         
         # Ответ модели
         await msg.answer(answer)
         logger.info("Получен ответ от LLM")
+        
     except Exception as e:
         await msg.answer("Произошла ошибка при обработке запроса 😕")
         logger.exception(e)

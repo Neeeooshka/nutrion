@@ -37,7 +37,6 @@ async def handle_message(msg: types.Message, state: FSMContext):
         # Запрашиваем модель (LLM)
         await msg.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         answer = await ask_llm(chat_id, user_id, user_input)
-        await add_to_memory(chat_id, user_id, user_input, answer)
         
         # Ответ модели
         await msg.answer(answer)

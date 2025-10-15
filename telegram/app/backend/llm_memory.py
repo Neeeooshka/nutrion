@@ -71,9 +71,11 @@ async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
     resp.raise_for_status()
     data = resp.json()
     
-    ai_text = data.get("answer", get_random_error_phrase())
+    ai_text = data.get("answer", "")
     
     if not data.get("status","error") == "error":
         await add_to_memory(chat_id, user_id, user_message, ai_text)
+    else:
+        ai_text = get_random_error_phrase()
     
     return ai_text

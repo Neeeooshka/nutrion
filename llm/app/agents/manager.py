@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import logging
 from services.llm_orchestrator import LLMOrchestrator
 
 class AgentManager:
@@ -26,6 +27,10 @@ class AgentManager:
         
         agent = self.agents.get(agent_type, self.agents["simple"])
         answer = await agent.process_query(user_query)
+        
+        if answer.startswith("Ошибка:"):
+            logger = logging.getLogger("nutrition-llm")
+            logger.warning(f"❌ {answer}")
         
         return {
             "answer": "" if answer.startswith("Ошибка:") else answer,

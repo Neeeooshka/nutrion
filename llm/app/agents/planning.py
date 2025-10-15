@@ -1,3 +1,9 @@
+from typing import List, Dict, Any, Optional
+import logging
+
+logger = logging.getLogger("nutrition-llm")
+
+
 class PlanningAgent:
     def __init__(self, llm_service):
         self.llm = llm_service

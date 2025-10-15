@@ -21,7 +21,7 @@ services:
     networks:
       - nutrion_net
     ports:
-      - "8001:8000"
+      - "8013:8013"
     depends_on:
       - ollama
     environment:

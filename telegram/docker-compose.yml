@@ -24,6 +24,34 @@ services:
     networks:
       - nutrion_net
   
+  ollama:
+    image: ollama/ollama:latest
+    container_name: nutrion_ollama
+    restart: always
+    networks:
+      - nutrion_net
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+  llm:
+    build: ../llm/app
+    container_name: nutrion_llm
+    restart: always
+    env_file:
+      - ../.env
+    networks:
+      - nutrion_net
+    ports:
+      - "8013:8013"
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+
   dozzle:
     image: amir20/dozzle:latest
     container_name: dozzle
@@ -56,3 +84,4 @@ networks:
 volumes:
   pgdata:
   redisdata:
+  ollama_data:

@@ -69,7 +69,8 @@ async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
         )
     resp.raise_for_status()
     data = resp.json()
-    ai_text = data.get("answer", "Ошибка: нет ответа от модели")
+    error_text = get_random_error_phrase()
+    ai_text = data.get("answer", error_text)
 
     await add_to_memory(chat_id, user_id, user_message, ai_text)
     return ai_text

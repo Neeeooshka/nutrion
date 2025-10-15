@@ -6,6 +6,7 @@ from backend.llm_history import add_to_memory
 from backend.llm_profile import get_profile
 from handlers.profile import start_profile_flow
 from config.thinking import get_random_phrase
+from config.errors import get_random_error_phrase
 import logging
 import asyncio
 
@@ -43,5 +44,6 @@ async def handle_message(msg: types.Message, state: FSMContext):
         logger.info("Получен ответ от LLM")
         
     except Exception as e:
-        await msg.answer("Произошла ошибка при обработке запроса 😕")
+        error_text = get_random_error_phrase()
+        await msg.answer(error_text)
         logger.exception(e)

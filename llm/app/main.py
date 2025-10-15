@@ -36,6 +36,8 @@ async def ask(request: Request):
     prompt = data.get("prompt", DEFAULT_PROMPT)
     context = data.get("context", "")
 
+    check_balance(client)
+
     try:
         response = client.chat.completions.create(
             model=MODEL,
@@ -54,3 +56,11 @@ async def ask(request: Request):
         logger.error(f"Ошибка OpenAI API: {e}")
         logger.debug(traceback.format_exc())
         return {"error": str(e)}
+
+async def check_balance():
+    # Проверить использование (если API доступен)
+    try:
+        usage = client.usage()
+        logger.debug(f"Использовано: {usage}")
+    except Exception as e:
+        logger.debug(f"Ошибка проверки баланса: {e}")

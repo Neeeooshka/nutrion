@@ -11,7 +11,7 @@ SYSTEM_PROMPT = (
 )
 
 OPENAI_MODEL = "gpt-5-mini"  # можно легко заменить на другую модель
-OLLAMA_MODEL = "qwen2.5:7b" # или llama3.2:3b
+OLLAMA_MODEL = "llama3.2:3b" # или qwen2.5:7b
 
 MAX_TOKENS = 400
 TEMPERATURE = 0.7

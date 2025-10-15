@@ -10,4 +10,9 @@ SYSTEM_PROMPT = (
     "Если речь о тренировках — предложи реалистичные упражнения по уровню."
 )
 
-MODEL = "gpt-5-mini"  # можно легко заменить на другую модель
+OPENAI_MODEL = "gpt-5-mini"  # можно легко заменить на другую модель
+OLLAMA_MODEL = "qwen2.5:7b" # или llama3.2:3b
+
+MAX_TOKENS = 400
+TEMPERATURE = 0.7
+OLLAMA_TIMEOUT = 30

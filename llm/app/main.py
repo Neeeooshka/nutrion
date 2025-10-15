@@ -1,18 +1,10 @@
-from fastapi import FastAPI, Request, HTTPException
-import os
-import traceback
+from fastapi import FastAPI
 import logging
 import sys
-from openai import OpenAI
-from config import SYSTEM_PROMPT, MODEL, DEFAULT_PROMPT
+from services.llm_orchestrator import LLMOrchestrator
+from api.endpoints import router
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
-app = FastAPI()
-
-# Настраиваем logger
+# Настройка логгера
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -21,46 +13,27 @@ logging.basicConfig(
 
 logger = logging.getLogger("nutrition-llm")
 
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "nutrition-llm"}
+# Инициализация приложения
+app = FastAPI(
+    title="Nutrition LLM Service",
+    version="1.0.0",
+    description="Гибридный LLM сервис для вопросов о питании и фитнесе"
+)
 
-@app.post("/ask")
-async def ask(request: Request):
-    key = request.headers.get("X-API-Key")
-    if key != INTERNAL_API_KEY:
-        logger.warning("Неавторизованный запрос!")
-        raise HTTPException(status_code=403, detail="Unauthorized")
-    
-    data = await request.json()
-    prompt = data.get("prompt", DEFAULT_PROMPT)
-    context = data.get("context", "")
+# Инициализация оркестратора
+llm_orchestrator = LLMOrchestrator()
 
-    check_balance()
+# Подключение роутера
+app.include_router(router)
 
-    try:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"{context}\n{prompt}"}
-            ],
-            temperature=0.7,
-            max_tokens=400
-        )
-        ai_text = response.choices[0].message['content']
-        logger.info("Ответ успешно получен от модели.")
-        return {"answer": ai_text}
+@app.on_event("startup")
+async def startup_event():
+    """Запуск при старте приложения"""
+    logger.info("🚀 Starting Nutrition LLM Service...")
+    await asyncio.sleep(15)
+    await llm_orchestrator.initialize()
 
-    except Exception as e:
-        logger.error(f"Ошибка OpenAI API: {e}")
-        logger.debug(traceback.format_exc())
-        return {"error": str(e)}
-
-async def check_balance():
-    # Проверить использование (если API доступен)
-    try:
-        usage = client.usage()
-        logger.debug(f"Использовано: {usage}")
-    except Exception as e:
-        logger.debug(f"Ошибка проверки баланса: {e}")
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Очистка при завершении"""
+    logger.info("🛑 Shutting down Nutrition LLM Service...")

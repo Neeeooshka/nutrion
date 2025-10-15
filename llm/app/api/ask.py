@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from services.llm_orchestrator import LLMOrchestrator
+from config import DEFAULT_PROMPT
 import os
 
 router = APIRouter(tags=["ask"])
@@ -24,7 +25,26 @@ async def ask(
     verify_api_key(request)
     
     data = await request.json()
-    prompt = data.get("prompt", "Ответь на вопрос о питании или фитнесе")
+    prompt = data.get("prompt", DEFAULT_PROMPT)
     context = data.get("context", "")
     
     return await orchestrator.ask(prompt, context)
+    
+@router.post("/ask-agent")
+async def ask_agent(
+    request: Request,
+    orchestrator: LLMOrchestrator = Depends(get_llm_orchestrator)
+):
+    """Эндпоинт для работы с агентами"""
+    verify_api_key(request)
+    
+    data = await request.json()
+    prompt = data.get("prompt", DEFAULT_PROMPT)
+    agent_type = data.get("agent_type", "auto")  # auto, nutrition, planning, simple
+    context = data.get("context", "")
+    
+    from agents.manager import AgentManager
+    agent_manager = AgentManager(orchestrator)
+    
+    full_prompt = f"{context}\n{prompt}" if context else prompt
+    return await agent_manager.route_request(full_prompt, agent_type)

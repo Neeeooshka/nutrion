@@ -63,7 +63,7 @@ async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
 
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
-            f"{LLM_URL}/ask",
+            f"{LLM_URL}/ask-agent",
             json={"prompt": prompt},
             headers=headers
         )

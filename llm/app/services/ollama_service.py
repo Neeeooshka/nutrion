@@ -56,7 +56,12 @@ class OllamaService(BaseLLMService):
             # Проверка №2: Через ollama client
             logger.info("🔍 Проверяем через ollama client...")
             models = self.client.list()
-            available_models = [m['name'] for m in models['models']]
+            if 'models' in models:
+                available_models = [m['name'] for m in models['models']]
+            else:
+                available_models = []
+                logger.warning(f"❌ Ключ 'models' не найден в ответе: {models}")
+                
             logger.info(f"📋 Доступные модели: {available_models}")
             
             # Проверка №3: Доступность конкретной модели

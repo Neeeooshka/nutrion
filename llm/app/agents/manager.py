@@ -50,5 +50,8 @@ class AgentManager:
         else:
             agent_type = "simple"  # fallback
         
+        import logging
+        logger = logging.getLogger("nutrition-llm")
+        
         logger.info(f"🎯 Определен тип агента: {agent_type} для запроса: {query}")
         return agent_type

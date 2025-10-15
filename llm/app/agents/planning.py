@@ -9,6 +9,18 @@ class PlanningAgent:
         self.llm = llm_service
         self.conversation_history = []
     
+    async def process_query(self, user_query: str) -> str:
+        """Основной метод обработки запроса для менеджера"""
+        logger.info(f"📋 PlanningAgent обрабатывает запрос: {user_query}")
+        
+        try:
+            # Используем существующую логику планирования
+            result = await self.execute_plan(user_query)
+            return result
+        except Exception as e:
+            logger.error(f"❌ Ошибка в PlanningAgent: {e}")
+            return f"Извините, не удалось создать план. Ошибка: {str(e)}"
+    
     async def execute_plan(self, user_goal: str) -> str:
         """Выполнение многошагового плана"""
         logger.info(f"🎯 Начинаем выполнение цели: {user_goal}")

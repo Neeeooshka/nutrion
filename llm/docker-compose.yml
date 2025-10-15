@@ -11,33 +11,6 @@ services:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 5s
-      timeout: 10s
-      retries: 15
-      start_period: 60s
-      
-  ollama-init:
-    image: ollama/ollama:latest
-    container_name: ollama_init
-    networks:
-      - nutrion_net
-    depends_on:
-      ollama:
-        condition: service_healthy
-    volumes:
-      - ollama_data:/root/.ollama
-    command: >
-      sh -c "
-        echo '🔄 Устанавливаем модели Ollama...' &&
-        ollama pull llama3.2:3b &&
-        echo '✅ llama3.2:3b установлена' &&
-        ollama pull qwen2.5:7b && 
-        echo '✅ qwen2.5:7b установлена' &&
-        echo '🎉 Все модели установлены!'
-      "
-    restart: "no"
   
   llm:
     build: ./app

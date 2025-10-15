@@ -1,6 +1,8 @@
 import ollama
 from .llm_service import BaseLLMService
-from config import OLLAMA_MODEL, OLLAMA_HOST, SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
+from config import OLLAMA_MODEL, SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
+
+OLLAMA_HOST = os.getenv("OLLAMA_HOST")
 
 class OllamaService(BaseLLMService):
     """Сервис для работы с локальной Ollama"""

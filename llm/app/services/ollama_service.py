@@ -26,7 +26,7 @@ class OllamaService(BaseLLMService):
                 stream = self.client.chat(
                     model=self.model,
                     messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT}
+                        {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": full_prompt},
                     ],
                     options={

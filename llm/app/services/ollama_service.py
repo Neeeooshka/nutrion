@@ -10,24 +10,23 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 class OllamaService(BaseLLMService):
     """Асинхронный сервис для работы с Ollama"""
-
+    
     def __init__(self):
         self.model = OLLAMA_MODEL
         self._is_available = False
         self.logger = logging.getLogger("nutrition-llm")
+        self._buffer = ""  # Буфер для неполных JSON
 
     async def ask(self, prompt: str, context: str = "") -> dict:
         """Асинхронный запрос к Ollama через HTTP стрим"""
         self.logger.info(f"⚙️ Отправляем запрос к Ollama ({self.model}) через aiohttp")
-
-        full_prompt = f"{SYSTEM_PROMPT}\n\nКонтекст: {context}\n\nВопрос: {prompt}"
-
+        
         url = f"{OLLAMA_HOST}/api/chat"
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": full_prompt},
+                {"role": "user", "content": f"Контекст: {context}\n\nВопрос: {prompt}"},
             ],
             "options": {
                 "temperature": TEMPERATURE,
@@ -35,32 +34,57 @@ class OllamaService(BaseLLMService):
             },
             "stream": True
         }
-
+        
         text_accum = ""
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=None)) as resp:
-                    async for line in resp.content:
-                        line = line.decode("utf-8").strip()
-                        if not line:
+                # Устанавливаем увеличенный таймаут
+                timeout = aiohttp.ClientTimeout(total=300)  # 5 минут
+                
+                async with session.post(url, json=payload, timeout=timeout) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        self.logger.error(f"Ошибка HTTP {resp.status}: {error_text}")
+                        return self._format_error(f"HTTP {resp.status}: {error_text}")
+                    
+                    async for chunk_bytes in resp.content.iter_any():
+                        if not chunk_bytes:
                             continue
-                        try:
-                            chunk = json.loads(line)
-                        except json.JSONDecodeError:
-                            # бывает, что стрим шлёт куски без \n между ними
-                            continue
-
-                        if "message" in chunk and "content" in chunk["message"]:
-                            piece = chunk["message"]["content"]
-                            text_accum += piece
-                            self.logger.debug(f"💬 {piece.strip()}")
-
-                        if chunk.get("done"):
-                            break
-
-            self.logger.info(f"✅ Получен ответ длиной {len(text_accum)} символов")
-            return self._format_response(text_accum, self.model)
-
+                            
+                        chunk_text = chunk_bytes.decode('utf-8')
+                        self._buffer += chunk_text
+                        
+                        # Обрабатываем все полные JSON объекты из буфера
+                        while '\n' in self._buffer:
+                            line, self._buffer = self._buffer.split('\n', 1)
+                            line = line.strip()
+                            if not line:
+                                continue
+                                
+                            try:
+                                chunk_data = json.loads(line)
+                            except json.JSONDecodeError as e:
+                                self.logger.warning(f"Не удалось распарсить JSON: {line}, ошибка: {e}")
+                                continue
+                            
+                            # Обрабатываем данные чанка
+                            if "message" in chunk_data and "content" in chunk_data["message"]:
+                                piece = chunk_data["message"]["content"]
+                                text_accum += piece
+                                self.logger.debug(f"💬 Получен чанк: {piece.strip()}")
+                            
+                            if chunk_data.get("done", False):
+                                self.logger.info(f"✅ Получен ответ длиной {len(text_accum)} символов")
+                                self._buffer = ""  # Очищаем буфер
+                                return self._format_response(text_accum, self.model)
+                    
+                    # Если поток завершился, но мы не получили done
+                    if text_accum:
+                        self.logger.info(f"⚠️ Поток завершился без флага done. Ответ: {len(text_accum)} символов")
+                        return self._format_response(text_accum, self.model)
+                    else:
+                        return self._format_error("Пустой ответ от модели")
+                        
         except asyncio.TimeoutError:
             self.logger.warning("⚠️ Превышен таймаут ожидания ответа от Ollama")
             return self._format_error("Истек таймаут ожидания от модели")
@@ -68,26 +92,30 @@ class OllamaService(BaseLLMService):
             self.logger.error(f"Ошибка HTTP при обращении к Ollama: {e}")
             return self._format_error(str(e))
         except Exception as e:
-            self.logger.exception(e)
+            self.logger.exception(f"Неожиданная ошибка: {e}")
             return self._format_error(str(e))
+
+    async def health_check(self) -> bool:
+        """Проверка здоровья Ollama"""
+        url = f"{OLLAMA_HOST}/api/tags"
+        self.logger.info(f"Проверка доступности Ollama...")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status == 200:
+                        self._is_available = True
+                        self.logger.info(f"✅ Ollama доступен")
+                        return True
+                    else:
+                        self.logger.warning(f"❌ Ollama недоступен, статус: {resp.status}")
+                        self._is_available = False
+                        return False
+        except Exception as e:
+            self.logger.warning(f"❌ Ollama недоступен: {e}")
+            self._is_available = False
+            return False
 
     async def is_available(self) -> bool:
         """Проверка доступности Ollama"""
         return await self.health_check()
-
-    async def health_check(self) -> bool:
-        """Проверка здоровья Ollama"""
-        url = f"{OLLAMA_HOST}/api/generate"
-        self.logger.info(f"Проверка доступности модели {self.model}...")
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"model": self.model, "prompt": "ping", "stream": False}) as resp:
-                    if resp.status == 200:
-                        self._is_available = True
-                        self.logger.info(f"✅ Модель {self.model} доступна")
-                        return True
-        except Exception as e:
-            self.logger.warning(f"❌ Ollama недоступна: {e}")
-
-        self._is_available = False
-        return False

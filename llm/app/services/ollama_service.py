@@ -18,12 +18,13 @@ class OllamaService(BaseLLMService):
         try:
             full_prompt = f"{SYSTEM_PROMPT}\n\nКонтекст: {context}\n\nВопрос: {prompt}"
             
-            stream = self.client.chat(
+            stream = await asyncio.to_thread(
+                self.client.chat,
                 model=self.model,
                 messages=[{"role": "user", "content": full_prompt}],
                 options={
-                    'temperature': TEMPERATURE,
-                    'num_predict': MAX_TOKENS
+                    "temperature": TEMPERATURE,
+                    "num_predict": MAX_TOKENS
                 },
                 stream=True
             )

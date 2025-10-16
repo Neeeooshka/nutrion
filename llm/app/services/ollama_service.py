@@ -37,7 +37,8 @@ class OllamaService(BaseLLMService):
                 )
                 logger.info("начинаем стрим")
                 for chunk in stream:
-                    logger.info(f"ответ от бота: {chunk["message"]["content"]}")
+                    content = chunk["message"]["content"]
+                    logger.info(f"ответ от бота: {content}")
                     if "message" in chunk and "content" in chunk["message"]:
                         text += chunk["message"]["content"]
                 return text

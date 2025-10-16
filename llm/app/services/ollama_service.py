@@ -1,6 +1,7 @@
 import os
 import ollama
 import asyncio
+import logging
 from .llm_service import BaseLLMService
 from config import OLLAMA_MODEL, SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
 
@@ -17,20 +18,26 @@ class OllamaService(BaseLLMService):
     async def ask(self, prompt: str, context: str = "") -> dict:
         """Запрос к Ollama"""
         try:
-            full_prompt = f"{SYSTEM_PROMPT}\n\nКонтекст: {context}\n\nВопрос: {prompt}"
-            
+            logger = logging.getLogger("nutrition-llm")
+            full_prompt = f"Контекст: {context}\nВопрос: {prompt}"
             def run_in_thread():
+                logger.info("Вошли в потоковую функцию")
                 text = ""
                 stream = self.client.chat(
                     model=self.model,
-                    messages=[{"role": "user", "content": full_prompt}],
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT}
+                        {"role": "user", "content": full_prompt},
+                    ],
                     options={
                         "temperature": TEMPERATURE,
                         "num_predict": MAX_TOKENS
                     },
                     stream=True
                 )
+                logger.info("начинаем стрим")
                 for chunk in stream:
+                    logger.info(f"ответ от бота: {chunk["message"]["content"]}")
                     if "message" in chunk and "content" in chunk["message"]:
                         text += chunk["message"]["content"]
                 return text
@@ -40,6 +47,7 @@ class OllamaService(BaseLLMService):
             return self._format_response(ai_text, self.model)
             
         except Exception as e:
+            logger.exception(e)
             return self._format_error(str(e))
     
     async def is_available(self) -> bool:
@@ -48,7 +56,6 @@ class OllamaService(BaseLLMService):
     
     async def health_check(self) -> bool:
         """Упрощенная проверка здоровья Ollama"""
-        import logging
         logger = logging.getLogger("nutrition-llm")
         
         try:

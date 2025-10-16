@@ -31,7 +31,7 @@ async def handle_message(msg: types.Message, state: FSMContext):
         # Фраза размышления
         await msg.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         thinking_text = get_random_phrase()
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         await msg.answer(thinking_text)
         
         # Запрашиваем модель (LLM)
@@ -59,7 +59,7 @@ async def keep_typing(bot, chat_id, stop_event: asyncio.Event):
     """Поддерживает статус 'typing' пока stop_event не установлен"""
     try:
         while not stop_event.is_set():
+            await asyncio.sleep(4)
             await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-            await asyncio.sleep(4)  # Telegram сбрасывает через 5 секунд
     except Exception:
         pass  # чтобы не ронять поток при отмене

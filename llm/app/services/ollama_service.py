@@ -18,16 +18,21 @@ class OllamaService(BaseLLMService):
         try:
             full_prompt = f"{SYSTEM_PROMPT}\n\nКонтекст: {context}\n\nВопрос: {prompt}"
             
-            response = self.client.chat(
+            stream = self.client.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": full_prompt}],
                 options={
                     'temperature': TEMPERATURE,
                     'num_predict': MAX_TOKENS
-                }
+                },
+                stream=True
             )
             
-            ai_text = response['message']['content']
+            ai_text = ""
+            for chunk in stream:
+                if "message" in chunk and "content" in chunk["message"]:
+                    ai_text += chunk["message"]["content"]
+            
             return self._format_response(ai_text, self.model)
             
         except Exception as e:

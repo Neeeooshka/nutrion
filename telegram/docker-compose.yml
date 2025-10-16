@@ -49,8 +49,6 @@ services:
       - "8013:8013"
     depends_on:
       - ollama
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
 
   dozzle:
     image: amir20/dozzle:latest

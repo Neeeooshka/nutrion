@@ -32,7 +32,7 @@ class OllamaService(BaseLLMService):
             "options": {
                 "temperature": TEMPERATURE,
                 "num_predict": MAX_TOKENS
-            ],
+            },
             "stream": True
         }
 

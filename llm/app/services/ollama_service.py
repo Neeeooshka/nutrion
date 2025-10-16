@@ -1,5 +1,6 @@
 import os
 import ollama
+import asyncio
 from .llm_service import BaseLLMService
 from config import OLLAMA_MODEL, SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
 
@@ -18,21 +19,23 @@ class OllamaService(BaseLLMService):
         try:
             full_prompt = f"{SYSTEM_PROMPT}\n\nКонтекст: {context}\n\nВопрос: {prompt}"
             
-            stream = await asyncio.to_thread(
-                self.client.chat,
-                model=self.model,
-                messages=[{"role": "user", "content": full_prompt}],
-                options={
-                    "temperature": TEMPERATURE,
-                    "num_predict": MAX_TOKENS
-                },
-                stream=True
-            )
+            def run_in_thread():
+                text = ""
+                stream = self.client.chat(
+                    model=self.model,
+                    messages=[{"role": "user", "content": full_prompt}],
+                    options={
+                        "temperature": TEMPERATURE,
+                        "num_predict": MAX_TOKENS
+                    },
+                    stream=True
+                )
+                for chunk in stream:
+                    if "message" in chunk and "content" in chunk["message"]:
+                        text += chunk["message"]["content"]
+                return text
             
-            ai_text = ""
-            for chunk in stream:
-                if "message" in chunk and "content" in chunk["message"]:
-                    ai_text += chunk["message"]["content"]
+            ai_text = await asyncio.to_thread(run_in_thread)
             
             return self._format_response(ai_text, self.model)
             

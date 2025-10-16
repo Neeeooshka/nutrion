@@ -1,15 +1,17 @@
+import asyncio
 from typing import List, Dict, Any, Optional
 import logging
+import os
 
 logger = logging.getLogger("nutrition-llm")
 
 class NutritionAgent:
-    def __init__(self, llm_service):
-        self.llm = llm_service
+    def __init__(self, fast_llm_service, quality_llm_service):
+        self.fast_llm = fast_llm_service
+        self.quality_llm = quality_llm_service
         self.tools = self._setup_tools()
     
     def _setup_tools(self):
-        """Настройка инструментов агента"""
         return {
             "calculate_calories": self.calculate_calories,
             "suggest_workout": self.suggest_workout,
@@ -18,89 +20,55 @@ class NutritionAgent:
         }
     
     async def process_query(self, user_query: str) -> str:
-        """Основной метод обработки запроса"""
+        """Основной метод обработки запроса с параллельным выполнением"""
         # Шаг 1: Анализ запроса и выбор инструментов
         tools_to_use = await self._select_tools(user_query)
         
-        # Шаг 2: Выполнение инструментов
-        results = []
-        for tool_name in tools_to_use:
-            result = await self.tools[tool_name](user_query)
-            results.append(result)
+        # Шаг 2: ПАРАЛЛЕЛЬНОЕ выполнение инструментов
+        tasks = [self.tools[tool_name](user_query) for tool_name in tools_to_use]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Фильтруем успешные результаты
+        valid_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Ошибка в инструменте {tools_to_use[i]}: {result}")
+            else:
+                valid_results.append(result)
         
         # Шаг 3: Синтез финального ответа
-        final_response = await self._synthesize_response(user_query, results)
+        final_response = await self._synthesize_response(user_query, valid_results)
         return final_response
     
+    # Остальные методы без изменений...
     async def _select_tools(self, query: str) -> List[str]:
-        """Выбор подходящих инструментов для запроса"""
-        prompt = f"""
-        Проанализируй запрос пользователя и выбери подходящие инструменты из списка:
-        Запрос: {query}
-        
-        Доступные инструменты:
-        - calculate_calories: расчет калорий, БЖУ
-        - suggest_workout: рекомендации по тренировкам
-        - analyze_nutrition: анализ питания
-        - create_meal_plan: создание плана питания
-        
-        Верни только названия инструментов через запятую.
-        """
-        
-        response = await self.llm.ask(prompt)
-        tools = [tool.strip() for tool in response.split(",")]
+        prompt = f"""..."""
+        response = await self.fast_llm.ask(prompt)
+        response_text = response.get("answer", "") if isinstance(response, dict) else response
+        tools = [tool.strip() for tool in response_text.split(",")]
         return [tool for tool in tools if tool in self.tools]
     
-    # Реализации инструментов
     async def calculate_calories(self, query: str) -> str:
-        """Расчет калорий и БЖУ"""
-        prompt = f"""
-        Рассчитай калории и БЖУ на основе запроса:
-        {query}
-        
-        Дай конкретные цифры и рекомендации.
-        """
-        return await self.llm.ask(prompt)
+        prompt = f"""..."""
+        response = await self.fast_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response
     
     async def suggest_workout(self, query: str) -> str:
-        """Рекомендации по тренировкам"""
-        prompt = f"""
-        Дай рекомендации по тренировкам на основе запроса:
-        {query}
-        
-        Учитывай уровень подготовки, цели и ограничения.
-        """
-        return await self.llm.ask(prompt)
+        prompt = f"""..."""
+        response = await self.fast_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response
     
     async def analyze_nutrition(self, query: str) -> str:
-        """Анализ текущего питания"""
-        prompt = f"""
-        Проанализируй текущее питание пользователя:
-        {query}
-        
-        Выдели сильные и слабые стороны, дай рекомендации.
-        """
-        return await self.llm.ask(prompt)
+        prompt = f"""..."""
+        response = await self.fast_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response
     
     async def create_meal_plan(self, query: str) -> str:
-        """Создание плана питания"""
-        prompt = f"""
-        Создай персонализированный план питания:
-        {query}
-        
-        Включи завтрак, обед, ужин и перекусы.
-        """
-        return await self.llm.ask(prompt)
+        prompt = f"""..."""
+        response = await self.fast_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response
     
     async def _synthesize_response(self, original_query: str, tool_results: List[str]) -> str:
-        """Синтез финального ответа из результатов инструментов"""
-        prompt = f"""
-        Исходный запрос: {original_query}
-        
-        Результаты анализа:
-        {chr(10).join(tool_results)}
-        
-        Создай целостный, персонализированный ответ объединяя все результаты.
-        Будь конкретен и дай практические рекомендации.
-        """
-        return await self.llm.ask(prompt)
+        prompt = f"""..."""
+        response = await self.quality_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response

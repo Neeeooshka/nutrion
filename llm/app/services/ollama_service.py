@@ -4,15 +4,15 @@ import aiohttp
 import json
 import logging
 from .llm_service import BaseLLMService
-from config import OLLAMA_MODEL, SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
+from config import SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 class OllamaService(BaseLLMService):
     """Асинхронный сервис для работы с Ollama"""
     
-    def __init__(self):
-        self.model = OLLAMA_MODEL
+    def __init__(self, model: str = None):
+        self.model = model or os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")  # Динамическая модель
         self._is_available = False
         self.logger = logging.getLogger("nutrition-llm")
         self._buffer = ""  # Буфер для неполных JSON

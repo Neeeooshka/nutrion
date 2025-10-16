@@ -1,12 +1,14 @@
+import asyncio
 from typing import List, Dict, Any, Optional
 import logging
+import os
 
 logger = logging.getLogger("nutrition-llm")
 
-
 class PlanningAgent:
-    def __init__(self, llm_service):
-        self.llm = llm_service
+    def __init__(self, fast_llm_service, quality_llm_service):
+        self.fast_llm = fast_llm_service  # Для подзадач
+        self.quality_llm = quality_llm_service  # Для финального ответа
         self.conversation_history = []
     
     async def process_query(self, user_query: str) -> str:
@@ -25,23 +27,28 @@ class PlanningAgent:
         """Выполнение многошагового плана"""
         logger.info(f"🎯 Начинаем выполнение цели: {user_goal}")
         
-        # Шаг 1: Создание плана
+        # Шаг 1: Создание плана (быстрая модель)
         plan = await self._create_plan(user_goal)
         logger.info(f"📋 План выполнения: {plan}")
         
-        # Шаг 2: Выполнение шагов
-        results = []
-        for step in plan:
-            logger.info(f"🔧 Выполняем шаг: {step}")
-            result = await self._execute_step(step, user_goal)
-            results.append(result)
+        # Шаг 2: ПАРАЛЛЕЛЬНОЕ выполнение шагов (быстрая модель)
+        tasks = [self._execute_step(step, user_goal) for step in plan]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Шаг 3: Финальный синтез
-        final_result = await self._create_final_report(user_goal, results)
+        # Фильтруем успешные результаты
+        valid_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Ошибка в шаге {plan[i]}: {result}")
+            else:
+                valid_results.append(result)
+        
+        # Шаг 3: Финальный синтез (качественная модель)
+        final_result = await self._create_final_report(user_goal, valid_results)
         return final_result
     
     async def _create_plan(self, goal: str) -> List[str]:
-        """Создание плана выполнения цели"""
+        """Создание плана выполнения цели (быстрая модель)"""
         prompt = f"""
         Пользователь хочет: {goal}
         
@@ -49,13 +56,15 @@ class PlanningAgent:
         Верни только шаги в виде нумерованного списка.
         """
         
-        response = await self.llm.ask(prompt)
+        response = await self.fast_llm.ask(prompt)
+        response_text = response.get("answer", "") if isinstance(response, dict) else response
+        
         # Парсим нумерованный список
-        steps = [line.strip() for line in response.split('\n') if line.strip() and line[0].isdigit()]
+        steps = [line.strip() for line in response_text.split('\n') if line.strip() and line[0].isdigit()]
         return [step[3:].strip() for step in steps if '. ' in step]  # Убираем нумерацию
     
     async def _execute_step(self, step: str, context: str) -> str:
-        """Выполнение одного шага плана"""
+        """Выполнение одного шага плана (быстрая модель)"""
         prompt = f"""
         Общая цель: {context}
         Текущий шаг: {step}
@@ -64,10 +73,11 @@ class PlanningAgent:
         Будь максимально конкретным и практичным.
         """
         
-        return await self.llm.ask(prompt)
+        response = await self.fast_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response
     
     async def _create_final_report(self, goal: str, step_results: List[str]) -> str:
-        """Создание финального отчета"""
+        """Создание финального отчета (качественная модель)"""
         prompt = f"""
         Исходная цель: {goal}
         
@@ -79,6 +89,9 @@ class PlanningAgent:
         2. Конкретными рекомендациями для пользователя
         3. Планом поддержания результатов
         4. Дальнейшими шагами для развития
+        
+        Отвечай на русском языке.
         """
         
-        return await self.llm.ask(prompt)
+        response = await self.quality_llm.ask(prompt)
+        return response.get("answer", "") if isinstance(response, dict) else response

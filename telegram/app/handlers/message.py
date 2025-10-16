@@ -68,12 +68,8 @@ async def process_llm_background(bot: Bot, chat_id: int, user_id: int, user_inpu
         if typing_task:
             await typing_task
         
-        # Редактируем исходное сообщение с результатом
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=processing_message_id,
-            text=answer
-        )
+        # Оставляем сообщение "Думаю..." и отправляем НОВОЕ сообщение с ответом
+        await bot.send_message(chat_id=chat_id, text=answer)
         
         logger.info(f"Ответ LLM отправлен пользователю {user_id}")
         
@@ -84,11 +80,9 @@ async def process_llm_background(bot: Bot, chat_id: int, user_id: int, user_inpu
             await typing_task
         
         error_text = get_random_error_phrase()
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=processing_message_id,
-            text=f"❌ {error_text}\n\nОшибка: {str(e)}"
-        )
+        # Оставляем сообщение "Думаю..." и отправляем НОВОЕ сообщение с ошибкой
+        await bot.send_message(chat_id=chat_id, text=f"❌ {error_text}")
+        
         logger.exception(f"Ошибка в фоновой задаче LLM: {e}")
 
 async def keep_typing(bot, chat_id, stop_event: asyncio.Event):

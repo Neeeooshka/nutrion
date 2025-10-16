@@ -59,7 +59,7 @@ async def keep_typing(bot, chat_id, stop_event: asyncio.Event):
     """Поддерживает статус 'typing' пока stop_event не установлен"""
     try:
         while not stop_event.is_set():
-            await asyncio.sleep(4)
+            await asyncio.sleep(7)
             await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     except Exception:
         pass  # чтобы не ронять поток при отмене

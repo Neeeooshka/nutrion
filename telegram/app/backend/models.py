@@ -12,7 +12,7 @@ users = sqlalchemy.Table(
     Column("id", Integer, primary_key=True),
     Column("telegram_id", String, unique=True, nullable=False),
     Column("username", String),
-    Column("created_at", DateTime, server_default=func.now())
+    Column("created_at", DateTime, server_default=func.now()),
 )
 
 user_memory = sqlalchemy.Table(
@@ -23,7 +23,8 @@ user_memory = sqlalchemy.Table(
     Column("user_id", String, nullable=False),
     Column("user_message", Text, nullable=False),
     Column("ai_response", Text, nullable=False),
-    Column("created_at", DateTime, server_default=func.now())
+    Column("created_at", DateTime, server_default=func.now()),
+    Column("topic", String, nullable=True),  # new
 )
 
 profiles = sqlalchemy.Table(

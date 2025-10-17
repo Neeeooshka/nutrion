@@ -8,6 +8,30 @@ from config import SYSTEM_PROMPT, TEMPERATURE, MAX_TOKENS
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
+async def ask_stream(self, prompt: str, context: str = "") -> async for str:
+    url = f"{OLLAMA_HOST}/api/chat"
+    payload = { ... "stream": True }  # current
+    text_accum = ""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=...) as resp:
+                async for chunk_bytes in resp.content.iter_any():
+                    chunk_text = chunk_bytes.decode('utf-8')
+                    self._buffer += chunk_text
+                    while '\n' in self._buffer:
+                        line, self._buffer = self._buffer.split('\n', 1)
+                        if not line.strip(): continue
+                        try:
+                            chunk_data = json.loads(line)
+                            if "message" in chunk_data and "content" in chunk_data["message"]:
+                                piece = chunk_data["message"]["content"]
+                                yield piece  # stream chunk
+                                text_accum += piece
+                            if chunk_data.get("done", False):
+                                return text_accum  # full for memory
+                        except: ...
+    except: ...
+    
 class OllamaService(BaseLLMService):
     """Асинхронный сервис для работы с Ollama"""
     

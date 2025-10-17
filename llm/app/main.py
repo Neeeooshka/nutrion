@@ -33,6 +33,7 @@ async def startup_event():
     logger.info("🚀 Starting Nutrition LLM Service...")
     await asyncio.sleep(15)
     await llm_orchestrator.initialize()
+    await llm_orchestrator.ask("Warm-up test prompt")  # cold fix
 
 @app.on_event("shutdown")
 async def shutdown_event():

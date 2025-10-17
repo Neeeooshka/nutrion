@@ -2,6 +2,7 @@ import logging
 from typing import Dict
 from .openai_service import OpenAIService
 from .ollama_service import OllamaService
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger("nutrition-llm")
 
@@ -29,6 +30,7 @@ class LLMOrchestrator:
             status = "✅" if is_available else "❌"
             logger.info(f"  {status} {name}: {'available' if is_available else 'unavailable'}")
     
+    @retry(stop=stop_after_attempt(2), wait=wait_exponential(min=2, max=10))
     async def ask(self, prompt: str, context: str = "") -> dict:
         """Основной метод для запросов с автоматическим переключением"""
         logger.info(f"📨 Запрос. Текущий провайдер: {self.current_provider}")
@@ -48,6 +50,16 @@ class LLMOrchestrator:
                 return await self._handle_error(result, prompt, context)
             
             return result
+        else:
+            # Текущий провайдер недоступен, ищем альтернативу
+            return await self._switch_provider_and_retry(prompt, context)
+            
+    async def ask_stream(self, prompt: str, context: str = "") -> async for str:
+        current_service = self.services[self.current_provider]
+        if await current_service.is_available():
+            async for chunk in current_service.ask_stream(prompt, context):  # ollama or openai stream
+                yield chunk
+        # Fallback logic similar
         else:
             # Текущий провайдер недоступен, ищем альтернативу
             return await self._switch_provider_and_retry(prompt, context)

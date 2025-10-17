@@ -58,29 +58,12 @@ class AgentManager:
             "error": answer if answer.startswith("Ошибка:") else ""
         }
     
-    async def _detect_agent_type(self, query: str) -> str:
-        """Автоматическое определение типа агента для запроса"""
-        prompt = f"""
-        Определи тип запроса пользователя:
-        "{query}"
-        
-        Варианты:
-        - nutrition: вопросы по питанию, калориям, БЖУ, диетам
-        - planning: создание планов, программ, многошаговые цели  
-        - simple: простые вопросы, общие консультации
-        
-        Верни только одно слово: nutrition, planning или simple
-        """
-        
-        response = await self.orchestrator.ask(prompt)
-        
-        # Извлекаем текст из словаря
-        if isinstance(response, dict) and 'answer' in response:
-            agent_type = response['answer'].strip().lower()
-        elif isinstance(response, str):
-            agent_type = response.strip().lower()
-        else:
-            agent_type = "simple"  # fallback
-        
-        logger.info(f"🎯 Определен тип агента: {agent_type} для запроса: {query}")
-        return agent_type
+    def _detect_agent_type(self, query: str) -> str:  # sync
+        query_lower = query.lower()
+        nutrition_keywords = ["питан", "калор", "рацион", "белк", "жир", "углевод", "бад", "протеин", "bcaa", "креатин", "продукт", "есть после", "на ночь", "утром", "днем"]
+        planning_keywords = ["тренир", "программ", "план", "расход энерги", "пропуск", "составь", "распиш", "зал", "функциональн"]
+        if any(kw in query_lower for kw in nutrition_keywords):
+            return "nutrition"
+        elif any(kw in query_lower for kw in planning_keywords):
+            return "planning"
+        return "simple"

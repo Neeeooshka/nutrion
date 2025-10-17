@@ -1,46 +1,41 @@
+# handlers/message.py
 from aiogram import Router, types, F, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatAction
-from backend.llm_memory import ask_llm
-from backend.llm_history import add_to_memory
+from backend.llm_memory import ask_llm, ask_llm_stream
 from backend.llm_profile import get_profile
 from handlers.profile import start_profile_flow
 from config.thinking import get_random_phrase
 from config.errors import get_random_error_phrase
 import logging
 import asyncio
+import time
 
 message_router = Router()
 logger = logging.getLogger(__name__)
 
 @message_router.message(~F.text.startswith("/"))
 async def handle_message(msg: types.Message, state: FSMContext):
-    
     chat_id = msg.chat.id
     user_id = msg.from_user.id
     
     profile = await get_profile(chat_id, user_id)
     if not profile:
-        # Профиль не заполнен — запускаем анкету
         logger.info("Запрос с незаполненным профилем")
         await start_profile_flow(msg, state)
         return
         
     user_input = msg.text
     try:
-        # Немедленно отправляем фразу размышления (через 1 секунду)
-        await asyncio.sleep(1)
         thinking_text = get_random_phrase()
-        processing_msg = await msg.answer(thinking_text)
+        await msg.answer(thinking_text)  # separate thinking
         
-        # Запускаем фоновую задачу для LLM
         asyncio.create_task(
             process_llm_background(
                 bot=msg.bot,
                 chat_id=chat_id,
                 user_id=user_id,
-                user_input=user_input,
-                processing_message_id=processing_msg.message_id
+                user_input=user_input
             )
         )
         
@@ -51,45 +46,39 @@ async def handle_message(msg: types.Message, state: FSMContext):
         await msg.answer(error_text)
         logger.exception(e)
 
-async def process_llm_background(bot: Bot, chat_id: int, user_id: int, user_input: str, processing_message_id: int):
-    """Фоновая задача для обработки LLM запроса"""
+async def process_llm_background(bot: Bot, chat_id: int, user_id: int, user_input: str):
     stop_event = asyncio.Event()
-    typing_task = None
+    typing_task = asyncio.create_task(keep_typing(bot, chat_id, stop_event))
     
     try:
-        # Запускаем индикатор набора
-        typing_task = asyncio.create_task(keep_typing(bot, chat_id, stop_event))
+        stream_msg = await bot.send_message(chat_id=chat_id, text="Генерирую ответ...")
+        current_text = ""
+        buffer = ""
+        start_time = time.time()
         
-        # Выполняем запрос к LLM
-        answer = await ask_llm(chat_id, user_id, user_input)
+        async for chunk in ask_llm_stream(chat_id, user_id, user_input):
+            buffer += chunk
+            if len(buffer) > 50 or (time.time() - start_time > 5):  # 5-10 sec
+                current_text += buffer
+                await bot.edit_message_text(chat_id=chat_id, message_id=stream_msg.message_id, text=current_text)
+                buffer = ""
+                start_time = time.time()
+                await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         
-        # Останавливаем индикатор набора
+        if buffer:
+            current_text += buffer
+            await bot.edit_message_text(chat_id=chat_id, message_id=stream_msg.message_id, text=current_text)
+        
         stop_event.set()
-        if typing_task:
-            await typing_task
+        await typing_task
         
-        # Оставляем сообщение "Думаю..." и отправляем НОВОЕ сообщение с ответом
-        await bot.send_message(chat_id=chat_id, text=answer)
+        await add_to_memory(chat_id, user_id, user_input, current_text, topic="")  # topic set in ask_llm_stream
         
         logger.info(f"Ответ LLM отправлен пользователю {user_id}")
         
     except Exception as e:
-        # Останавливаем индикатор набора при ошибке
         stop_event.set()
-        if typing_task:
-            await typing_task
-        
+        await typing_task
         error_text = get_random_error_phrase()
-        # Оставляем сообщение "Думаю..." и отправляем НОВОЕ сообщение с ошибкой
         await bot.send_message(chat_id=chat_id, text=f"❌ {error_text}")
-        
         logger.exception(f"Ошибка в фоновой задаче LLM: {e}")
-
-async def keep_typing(bot, chat_id, stop_event: asyncio.Event):
-    """Поддерживает статус 'typing' пока stop_event не установлен"""
-    try:
-        while not stop_event.is_set():
-            await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-            await asyncio.sleep(5)  # Отправляем действие каждые 5 секунд
-    except Exception as e:
-        logger.debug(f"Индикатор набора завершен: {e}")

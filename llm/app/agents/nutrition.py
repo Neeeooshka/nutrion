@@ -2,6 +2,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 import logging
 import os
+import re
 
 logger = logging.getLogger("nutrition-llm")
 
@@ -49,9 +50,34 @@ class NutritionAgent:
         return [tool for tool in tools if tool in self.tools]
     
     async def calculate_calories(self, query: str) -> str:
-        prompt = f"""..."""
-        response = await self.fast_llm.ask(prompt)
-        return response.get("answer", "") if isinstance(response, dict) else response
+        # Assume profile in query (from prompt)
+        gender = extract_param("gender", query, 'м')
+        age = float(extract_param("age", query, 30))  # defaults if not
+        weight = float(extract_param("weight", query, 70))
+        height = float(extract_param("height", query, 170))  # add height to profile if needed
+        goal = extract_param("goal", query, "maintain")
+        
+        # Harris-Benedict
+        if gender.lower() == 'м':
+            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+        else:
+            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+        
+        # Activity factor example: 1.2 sedentary, 1.55 moderate, etc.
+        activity_factor = 1.55  # from profile or query
+        calories = bmr * activity_factor
+        
+        # Adjust for goal
+        if "похуд" in goal.lower():
+            calories -= 500
+        elif "набор" in goal.lower():
+            calories += 500
+        
+        kbju = f"Daily calories: {calories:.0f}, Protein: {weight*2:.0f}g, Carbs: {calories*0.5/4:.0f}g, Fats: {calories*0.3/9:.0f}g"
+        
+        personalize_prompt = f"Based on KBJU {kbju}, suggest for query: {query}. Be brief."
+        response = await self.quality_llm.ask(personalize_prompt)
+        return response.get("answer", "")
     
     async def suggest_workout(self, query: str) -> str:
         prompt = f"""..."""
@@ -72,3 +98,8 @@ class NutritionAgent:
         prompt = f"""..."""
         response = await self.quality_llm.ask(prompt)
         return response.get("answer", "") if isinstance(response, dict) else response
+    
+    def extract_param(param_name, text: str, default=None):
+        # Simple regex, improve as needed
+        match = re.search(f"{param_name}:\\s*(\\w+)", text, re.I)
+        return match.group(1) if match else default

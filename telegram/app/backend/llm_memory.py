@@ -1,8 +1,8 @@
 # backend/llm_memory.py
-import aioredis
+import redis.asyncio as redis
 import httpx
 import logging
-from typing import Tuple
+from typing import Tuple, AsyncIterator
 from backend.db import database
 from backend.models import user_memory
 from backend.llm_profile import get_profile
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 LLM_URL = os.getenv("LLM_URL")
 INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 REDIS_URL = os.getenv("REDIS_URL")
-redis = aioredis.from_url(REDIS_URL)
+redis = redis.Redis.from_url(REDIS_URL)
 
 def make_key(chat_id: int, user_id: int) -> dict:
     return {"chat_id": str(chat_id), "user_id": str(user_id)}
@@ -68,10 +68,18 @@ async def add_to_memory(chat_id: int, user_id: int, user_message: str, ai_respon
     await database.execute(ins)
 
 async def build_prompt_and_topic(chat_id: int, user_id: int, user_message: str) -> Tuple[str, str]:
-    """Формируем промпт и topic"""
-    from main import llm_orchestrator
-    manager = AgentManager(llm_orchestrator)
-    topic = manager._detect_agent_type(user_message)
+    """Формируем промпт и topic через API"""
+    headers = {"X-API-Key": INTERNAL_API_KEY, "Content-Type": "application/json"}
+    
+    async with httpx.AsyncClient(timeout=10) as client:  # short timeout for detect
+        resp = await client.post(
+            f"{LLM_URL}/detect_type",
+            json={"query": user_message},
+            headers=headers
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        topic = data.get("type", "simple")
     
     profile = await get_profile(chat_id, user_id)
     profile_info = ""
@@ -114,7 +122,7 @@ async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
     
     return ai_text
 
-async def ask_llm_stream(chat_id: int, user_id: int, user_message: str) -> async for str:
+async def ask_llm_stream(chat_id: int, user_id: int, user_message: str) -> AsyncIterator[str]:
     """Стриминг ответ от LLM"""
     prompt, topic = await build_prompt_and_topic(chat_id, user_id, user_message)
     

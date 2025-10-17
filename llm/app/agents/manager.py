@@ -1,6 +1,8 @@
+# llm/agents/manager.py
 from typing import Dict, Any
 import logging
 from services.llm_orchestrator import LLMOrchestrator
+from config import AGENT_CLASSES  # import
 
 # Настройка логгера
 logger = logging.getLogger("nutrition-llm")
@@ -8,43 +10,45 @@ logger = logging.getLogger("nutrition-llm")
 class AgentManager:
     def __init__(self, llm_orchestrator: LLMOrchestrator):
         self.orchestrator = llm_orchestrator
-        self.agents = self._initialize_agents()
+        self.registry: Dict[str, Any] = self._register_agents()
     
-    def _initialize_agents(self) -> Dict[str, Any]:
-        """Инициализация всех агентов с двумя LLM сервисами"""
-        from .nutrition import NutritionAgent
-        from .planning import PlanningAgent
-        from .simple import SimpleAgent
-        
-        # Создаем отдельные сервисы для быстрых и качественных моделей
+    def _register_agents(self) -> Dict[str, Any]:
+        """Автоматическая регистрация агентов из config"""
         from services.ollama_service import OllamaService
         import os
         
         fast_llm = OllamaService(model=os.getenv("OLLAMA_FAST_MODEL"))
         quality_llm = OllamaService(model=os.getenv("OLLAMA_MODEL"))
         
-        return {
-            "nutrition": NutritionAgent(fast_llm, quality_llm),
-            "planning": PlanningAgent(fast_llm, quality_llm),
-            "simple": SimpleAgent(self.orchestrator)  # Оставляем как есть для простых запросов
-        }
+        registry = {}
+        for agent_cls in AGENT_CLASSES:
+            agent = agent_cls(fast_llm, quality_llm) if agent_cls.name != "simple" else agent_cls(self.orchestrator)
+            registry[agent.name] = agent
+            logger.info(f"Registered agent: {agent.name} - {agent.description}")
+        
+        return registry
+    
+    def _detect_agent_type(self, query: str) -> str:
+        """Определение типа по keywords из registry"""
+        query_lower = query.lower()
+        for agent in self.registry.values():
+            if any(kw in query_lower for kw in agent.keywords):
+                return agent.name
+        return "simple"  # fallback
     
     async def route_request(self, user_query: str, agent_type: str = "auto") -> dict:
-        """Маршрутизация запроса к нужному агенту с логированием"""
-        # Автоматическое определение типа агента
+        """Маршрутизация с использованием registry"""
         if agent_type == "auto":
-            agent_type = await self._detect_agent_type(user_query)
+            agent_type = self._detect_agent_type(user_query)
         
-        agent = self.agents.get(agent_type, self.agents["simple"])
+        agent = self.registry.get(agent_type, self.registry["simple"])
         
-        # Логируем передачу управления агенту
-        agent_name = agent.__class__.__name__
+        agent_name = agent.name
         logger.info(f"🔄 Передаю управление агенту: {agent_name} (тип: {agent_type})")
         logger.info(f"📝 Запрос: {user_query}")
         
         answer = await agent.process_query(user_query)
         
-        # Логируем завершение работы агента
         logger.info(f"✅ Агент {agent_name} завершил обработку")
         
         if answer.startswith("Ошибка:"):
@@ -58,12 +62,4 @@ class AgentManager:
             "error": answer if answer.startswith("Ошибка:") else ""
         }
     
-    def _detect_agent_type(self, query: str) -> str:  # sync
-        query_lower = query.lower()
-        nutrition_keywords = ["питан", "калор", "рацион", "белк", "жир", "углевод", "бад", "протеин", "bcaa", "креатин", "продукт", "есть после", "на ночь", "утром", "днем"]
-        planning_keywords = ["тренир", "программ", "план", "расход энерги", "пропуск", "составь", "распиш", "зал", "функциональн"]
-        if any(kw in query_lower for kw in nutrition_keywords):
-            return "nutrition"
-        elif any(kw in query_lower for kw in planning_keywords):
-            return "planning"
-        return "simple"
+    # Убрал _detect_agent_type async, так как теперь sync (no LLM)

@@ -1,11 +1,25 @@
+# llm/agents/planning.py
 import asyncio
 from typing import List, Dict, Any, Optional
+from .base import BaseAgent
 import logging
 import os
 
 logger = logging.getLogger("nutrition-llm")
 
-class PlanningAgent:
+class PlanningAgent(BaseAgent):
+    @property
+    def name(self) -> str:
+        return "planning"
+    
+    @property
+    def description(self) -> str:
+        return "Агент для создания планов, программ тренировок, многошаговых целей."
+    
+    @property
+    def keywords(self) -> List[str]:
+        return ["тренир", "программ", "план", "расход энерги", "пропуск", "составь", "распиш", "зал", "функциональн"]
+    
     def __init__(self, fast_llm_service, quality_llm_service):
         self.fast_llm = fast_llm_service  # Для подзадач
         self.quality_llm = quality_llm_service  # Для финального ответа

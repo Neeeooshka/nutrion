@@ -1,12 +1,27 @@
+# llm/agents/nutrition.py
 import asyncio
 from typing import List, Dict, Any, Optional
 import logging
 import os
-import re
+import re  # для extract
+
+from .base import BaseAgent  # import
 
 logger = logging.getLogger("nutrition-llm")
 
-class NutritionAgent:
+class NutritionAgent(BaseAgent):
+    @property
+    def name(self) -> str:
+        return "nutrition"
+    
+    @property
+    def description(self) -> str:
+        return "Агент для вопросов по питанию, калориям, БЖУ, диетам, продуктам и БАДам."
+    
+    @property
+    def keywords(self) -> List[str]:
+        return ["питан", "калор", "рацион", "белк", "жир", "углевод", "бад", "протеин", "bcaa", "креатин", "продукт", "есть после", "на ночь", "утром", "днем"]
+        
     def __init__(self, fast_llm_service, quality_llm_service):
         self.fast_llm = fast_llm_service
         self.quality_llm = quality_llm_service

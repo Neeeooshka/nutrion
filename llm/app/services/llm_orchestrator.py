@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, AsyncIterator
 from .openai_service import OpenAIService
 from .ollama_service import OllamaService
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -54,7 +54,7 @@ class LLMOrchestrator:
             # Текущий провайдер недоступен, ищем альтернативу
             return await self._switch_provider_and_retry(prompt, context)
             
-    async def ask_stream(self, prompt: str, context: str = "") -> async for str:
+    async def ask_stream(self, prompt: str, context: str = "") -> AsyncIterator[str]:
         current_service = self.services[self.current_provider]
         if await current_service.is_available():
             async for chunk in current_service.ask_stream(prompt, context):  # ollama or openai stream

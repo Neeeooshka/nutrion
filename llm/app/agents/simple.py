@@ -1,8 +1,22 @@
+# llm/agents/simple.py
 import logging
+from .base import BaseAgent
 
 logger = logging.getLogger("nutrition-llm")
 
-class SimpleAgent:
+class SimpleAgent(BaseAgent):
+    @property
+    def name(self) -> str:
+        return "simple"
+    
+    @property
+    def description(self) -> str:
+        return "Агент для простых вопросов, общих консультаций, причин, рекомендаций."
+    
+    @property
+    def keywords(self) -> List[str]:
+        return ["причин", "рекомендац", "науч", "что будет если", "правда ли", "почему"]
+    
     def __init__(self, llm_orchestrator):
         self.orchestrator = llm_orchestrator
     

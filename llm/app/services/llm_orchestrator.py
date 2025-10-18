@@ -62,7 +62,7 @@ class LLMOrchestrator:
         # Fallback logic similar
         else:
             # Текущий провайдер недоступен, ищем альтернативу
-            return await self._switch_provider_and_retry(prompt, context)
+            yield await self._switch_provider_and_retry(prompt, context)
     
     async def _handle_error(self, error_result: dict, prompt: str, context: str) -> dict:
         """Обработка ошибок с автоматическим переключением"""

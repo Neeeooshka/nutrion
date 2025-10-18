@@ -7,6 +7,7 @@ from backend.db import database
 from backend.models import user_memory
 from backend.llm_profile import get_profile
 from config.errors import get_random_error_phrase
+from config import SYSTEM_PROMPT  # new
 import os
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,6 @@ def make_key(chat_id: int, user_id: int) -> dict:
     return {"chat_id": str(chat_id), "user_id": str(user_id)}
 
 async def get_user_context(chat_id: int, user_id: int, current_topic: str) -> str:
-    """Собираем релевантный контекст с лимитом и summary"""
     cache_key = f"context:{chat_id}:{user_id}:{current_topic}"
     cached = await redis.get(cache_key)
     if cached:
@@ -55,7 +55,6 @@ async def get_user_context(chat_id: int, user_id: int, current_topic: str) -> st
     return context
 
 async def add_to_memory(chat_id: int, user_id: int, user_message: str, ai_response: str, topic: str):
-    """Добавляем с topic"""
     key = make_key(chat_id, user_id)
     ins = user_memory.insert().values(
         chat_id=key["chat_id"],
@@ -67,10 +66,9 @@ async def add_to_memory(chat_id: int, user_id: int, user_message: str, ai_respon
     await database.execute(ins)
 
 async def build_prompt_and_topic(chat_id: int, user_id: int, user_message: str) -> Tuple[str, str]:
-    """Формируем промпт и topic через API"""
     headers = {"X-API-Key": INTERNAL_API_KEY, "Content-Type": "application/json"}
     
-    async with httpx.AsyncClient(timeout=10) as client:  # short timeout for detect
+    async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.post(
             f"{LLM_URL}/detect_type",
             json={"query": user_message},
@@ -93,12 +91,11 @@ async def build_prompt_and_topic(chat_id: int, user_id: int, user_message: str) 
         )
     
     context = await get_user_context(chat_id, user_id, topic)
-    prompt = f"{profile_info}{context}\nUser: {user_message}" if context else f"{profile_info}User: {user_message}"
+    prompt = f"{SYSTEM_PROMPT}\n{profile_info}{context}\nUser: {user_message}" if context else f"{SYSTEM_PROMPT}\n{profile_info}User: {user_message}"
     
     return prompt, topic
 
 async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
-    """Формируем полный промт и отправляем на LLM"""
     prompt, topic = await build_prompt_and_topic(chat_id, user_id, user_message)
     
     headers = {"X-API-Key": INTERNAL_API_KEY, "Content-Type": "application/json"}
@@ -122,7 +119,6 @@ async def ask_llm(chat_id: int, user_id: int, user_message: str) -> str:
     return ai_text
 
 async def ask_llm_stream(chat_id: int, user_id: int, user_message: str) -> AsyncIterator[str]:
-    """Стриминг ответ от LLM"""
     prompt, topic = await build_prompt_and_topic(chat_id, user_id, user_message)
     
     headers = {"X-API-Key": INTERNAL_API_KEY, "Content-Type": "application/json"}
@@ -137,5 +133,10 @@ async def ask_llm_stream(chat_id: int, user_id: int, user_message: str) -> Async
             resp.raise_for_status()
             async for chunk in resp.aiter_text():
                 if chunk:
-                    yield chunk  # HTTP stream chunks
-            # Full text accumulated in bot
+                    try:
+                        data = json.loads(chunk)
+                        if "chunk" in data:
+                            yield data["chunk"]  # Extract text from JSON
+                    except json.JSONDecodeError:
+                        logger.warning(f"Invalid JSON chunk: {chunk}")
+                        continue

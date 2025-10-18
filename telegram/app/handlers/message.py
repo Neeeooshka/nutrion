@@ -10,6 +10,7 @@ from config.errors import get_random_error_phrase
 import logging
 import asyncio
 import time
+import json
 
 message_router = Router()
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ async def handle_message(msg: types.Message, state: FSMContext):
     user_input = msg.text
     try:
         thinking_text = get_random_phrase()
-        await msg.answer(thinking_text)  # separate thinking
+        await msg.answer(thinking_text)
         
         asyncio.create_task(
             process_llm_background(
@@ -58,7 +59,7 @@ async def process_llm_background(bot: Bot, chat_id: int, user_id: int, user_inpu
         
         async for chunk in ask_llm_stream(chat_id, user_id, user_input):
             buffer += chunk
-            if len(buffer) > 50 or (time.time() - start_time > 5):  # 5-10 sec
+            if len(buffer) > 50 or (time.time() - start_time > 5):
                 current_text += buffer
                 await bot.edit_message_text(chat_id=chat_id, message_id=stream_msg.message_id, text=current_text)
                 buffer = ""

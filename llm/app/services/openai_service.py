@@ -1,6 +1,9 @@
 import httpx
+import os
 import logging
 from .llm_service import BaseLLMService
+
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY")
 
 class OpenAIService(BaseLLMService):
     """Сервис для работы с OpenAI API"""

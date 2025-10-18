@@ -13,8 +13,7 @@ class SimpleAgent(BaseAgent):
         self.orchestrator = llm_orchestrator
     
     async def process_query(self, user_query: str) -> str:
-        from config import SYSTEM_PROMPT
-        prompt = f"{SYSTEM_PROMPT}\nUser: {user_query}"
+        prompt = f"User: {user_query}"
         
         # Простые вопросы о калориях перенаправляем в nutrition
         if "калор" in user_query.lower():

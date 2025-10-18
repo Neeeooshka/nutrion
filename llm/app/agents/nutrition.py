@@ -39,13 +39,10 @@ class NutritionAgent(BaseAgent):
             results = await asyncio.gather(*tools_to_run)
             return "\n".join(r for r in results if r)
         
-        # Fallback: если нет tools, прямой запрос к LLM
-        from config import SYSTEM_PROMPT
-        prompt = f"{SYSTEM_PROMPT}\nUser: {user_query}"
+        prompt = f"User: {user_query}"
         response = await self.quality_llm.ask(prompt)
         return response.get("answer", "")
     
-    # Остальные методы без изменений...
     async def _select_tools(self, query: str) -> List[str]:
         prompt = f"""..."""
         response = await self.fast_llm.ask(prompt)
@@ -75,10 +72,6 @@ class NutritionAgent(BaseAgent):
         
         kbju = f"Daily calories: {calories:.0f}, Protein: {weight*2:.0f}g, Carbs: {calories*0.5/4:.0f}g, Fats: {calories*0.3/9:.0f}g"
         
-        # Для простых запросов (напр., "калории в яблоке")
-        if "яблок" in query.lower():
-            return "В среднем яблоке (около 182 г) примерно 95 калорий."
-        
         personalize_prompt = f"Based on KBJU {kbju}, suggest for query: {query}. Be brief."
         response = await self.quality_llm.ask(personalize_prompt)
         return response.get("answer", "")
@@ -94,7 +87,16 @@ class NutritionAgent(BaseAgent):
         return response.get("answer", "") if isinstance(response, dict) else response
     
     async def create_meal_plan(self, query: str) -> str:
-        prompt = f"""..."""
+        prompt = f"""
+            Create a daily meal plan for the user's profile and goal.
+            Structure:
+            - Breakfast: Food items, KBJU
+            - Lunch: Food items, KBJU
+            - Dinner: Food items, KBJU
+            - Snacks: Food items, KBJU
+            Total daily: Calories, protein, carbs, fats
+            Make it varied, realistic for {query}.
+            """
         response = await self.fast_llm.ask(prompt)
         return response.get("answer", "") if isinstance(response, dict) else response
     

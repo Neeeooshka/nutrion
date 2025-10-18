@@ -7,7 +7,6 @@ from backend.db import database
 from backend.models import user_memory
 from backend.llm_profile import get_profile
 from config.errors import get_random_error_phrase
-from agents.manager import AgentManager
 import os
 
 logger = logging.getLogger(__name__)
